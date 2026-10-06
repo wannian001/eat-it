@@ -1,2 +1,8 @@
 .DS_Store
 *.swp
+# 录音和转写只放本地，不进仓库
+*.wav
+*.m4a
+*.mp3
+*转写*
+*transcript*
