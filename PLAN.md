@@ -1,3 +1,5 @@
+> **旧版记录（10/6 会议，v0.2）。** 产品方向已在 10/9 改为 Eat It!（两个 persona、手机 App、虚拟冰箱加桌面小组件）。现状请看 [docs/Eat-It_Design-Brief_v1.md](docs/Eat-It_Design-Brief_v1.md) 和 [AGENTS.md](AGENTS.md)。本文件保留 Jenny 的建议和会议记录作证据，下面的"一个 persona""ShelfLife""待定"都已过时。
+
 # Jenny 的建议与小组计划
 
 > 来源：2026-10-06 小组会议（57 分钟，中英双语），Jenny Waycott 在会上和我们聊了约 11 分钟。括号里是录音里的时间点。录音和转写由嘉阔保存在本地，不放进仓库。转写是自动生成的，要引用原话请先回听录音。
