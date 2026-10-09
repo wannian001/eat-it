@@ -29,7 +29,7 @@
 4. **范围**：只做 Brief §4.2 的核心功能和 §5.1 列出的页面。不加：热量、食谱、待办清单、室友空闲时间匹配、用照片估冰箱容量、桌面网页版、智能冰箱联动。计划功能是可选的，默认关闭。
 5. **一次只做一个产出**（一屏、一个小组件、一段动效）。做完把截图发给设计负责人（Raina），确认后再做下一个。不要一口气生成一堆新页面。
 6. **改动前先说你要做什么**：用三句话复述任务，等确认。组员明确叫你做的，照做；没叫你做的，先提方案，不要自己大改。
-7. **视觉只用 `docs/VISUAL-SPEC.md` 的 token**。不要自己加颜色、字体或图标风格。不用 emoji，不用卡通食物，不生成真人，不用 AI 配音。
+7. **视觉只用 `docs/VISUAL-SPEC.md` 的 token**。不要自己加颜色、字体或图标风格。食物统一用带白边的"贴纸"（见视觉规范第 4 节），不用 emoji，不生成真人，不用 AI 配音。
 8. **界面文案用英文**（视频给英文阅卷人看），每屏正文不超过 12 个英文单词；设计注释和说明用中文。最终视频使用澳式英语（Australian English）。
 9. 前端只在 Figma 高保真定稿之后开始，按 Figma 还原，不自由发挥。
 
@@ -41,6 +41,7 @@ docs/Eat-It_Design-Brief_v1.md         产品定义（最重要）
 docs/VISUAL-SPEC.md                    视觉规范
 docs/Eat-It_Teammate-Handoff_v1.md     组员交接单（含可粘贴的 AI 指令）
 docs/Eat-It_Storyboard_v2.md           视频分镜
+assets/stickers/                       食物贴纸 SVG（25 个，_overview.png 是总览）
 PLAN.md / docs/DESIGN.md / README.md   旧版（v0.2）记录，仅作证据和历史
 index.html / phone-v0.1.html / 截图/    旧版 lo-fi 原型，不再扩展
 ```
