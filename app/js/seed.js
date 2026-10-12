@@ -30,7 +30,7 @@ export const PERSONAS = {
     house: null, others: [],
     settings: { summary: true, quiet: true, lockNames: true, shareFree: false, shareShelf: false },
     usual: ['milk', 'spinach', 'eggs', 'bread'],
-    said: 'I had one bag of beef, two tomatoes and three eggs.',
+    said: 'I cooked one bag of beef with two tomatoes, and had some of the curry.',
     shop: [
       { id: 's1', name: 'Eggs', own: 'mine', who: 'John' },
       { id: 's2', name: 'Bananas', own: 'mine', who: 'John' },
@@ -119,7 +119,7 @@ export const PERSONAS = {
     shelves: [{ name: 'Top shelf', who: 'Lily & Sam', pct: 70 }, { name: 'Shared shelf', who: 'Everyone', pct: 60 }, { name: 'Your shelf', who: 'May', pct: 85 }, { name: 'Crisper', who: 'May', pct: 50 }],
     settings: { summary: true, quiet: true, lockNames: true, shareFree: true, shareShelf: true },
     usual: ['milk', 'strawberry', 'yoghurt', 'bread'],
-    said: 'I had two chicken thighs and some spinach.',
+    said: 'I made a stir fry with two chicken thighs, some spinach and the mushrooms.',
     shop: [
       { id: 's1', name: 'Rice 5 kg', own: 'shared', who: null, note: 'Shared rice is running low' },
       { id: 's2', name: 'Milk 2 L', own: 'shared', who: 'Lily' },

@@ -11,7 +11,8 @@ import { esc } from './ui.js';
 import { homePage } from './views/home.js';
 import { foodPage } from './views/food.js';
 import { addPage, scanPage, waysPage, reviewPage, buildLines, newLine, putLines } from './views/add.js';
-import { atePage, ateResult } from './views/ate.js';
+import { atePage, ateResult, questionsFor } from './views/ate.js';
+import { understand } from './ai.js';
 import { planPage } from './views/plan.js';
 import { shopPage, shopCheck } from './views/shop.js';
 import { householdPage, peopleSwitch, scenesHtml } from './views/household.js';
@@ -28,7 +29,7 @@ const NAV = [['home', 'Home', 'home'], ['food', 'Food at home', 'fridge'], ['pla
 const TABS = [['home', 'Home', 'fridge'], ['food', 'Food', 'list'], ['plan', 'Plan', 'plan'], ['shop', 'Shop', 'cart'], ['settings', 'Me', 'user']];
 
 const freshAdd = (over = {}) => ({ mode: 'photo', picks: [], scanning: false, src: 'picks', img: null, lines: [], edit: null, editQty: null, ...over });
-const freshAte = () => ({ phase: 'idle', text: '', result: null });
+const freshAte = () => ({ phase: 'idle', text: '', items: [], questions: [], answers: {}, step: 0, result: null });
 const freshUi = (keep = {}) => ({
   view: prefs.get('view', 'picture'), sheet: null, add: freshAdd(), ate: freshAte(),
   food: { place: null, q: '', own: 'all', view: 'picture' }, toast: null, shopAlert: null, flash: false,
@@ -173,16 +174,30 @@ function stopVoice() {
   if (rec) { rec.onend = null; try { rec.abort(); } catch { /* already stopped */ } rec = null; }
 }
 
-function finishVoice() {
-  app.ui.ate.phase = 'done';
-  app.ui.ate.result = ateResult(app.store, app.ui.ate.text);
+// After speaking: let the AI (or the built-in reader) work out the food, then ask about anything
+// without a number ("is there any curry left?"), then show the summary.
+async function finishVoice() {
+  const a = app.ui.ate;
+  a.phase = 'thinking';
+  render();
+  const s = app.store.state;
+  const stock = [...new Map([...s.lots.values()].map((l) => [l.food, { food: l.food, name: foodName(l.food, 2, l) }])).values()];
+  const [{ items }] = await Promise.all([understand(a.text, stock), new Promise((r) => setTimeout(r, 700))]);
+  if (app.ui.ate !== a || app.route !== 'ate') return;
+  a.items = items;
+  a.questions = questionsFor(app.store, items);
+  a.answers = {};
+  a.step = 0;
+  if (a.questions.length) { a.phase = 'ask'; render(); return; }
+  a.result = ateResult(app.store, items);
+  a.phase = 'done';
   render();
 }
 
 function listen() {
   stopVoice();
   const p = app.store.persona;
-  app.ui.ate = { phase: 'listening', text: '', result: null };
+  app.ui.ate = { ...freshAte(), phase: 'listening' };
   render();
   // John and May say their storyboard line, word by word, so a screen recording is repeatable.
   if (p.said) {
@@ -465,6 +480,17 @@ const ACT = {
 
   listen: () => listen(),
   stop: () => stopListening(),
+  'ate-answer'(v) {
+    const a = app.ui.ate;
+    a.answers[a.questions[a.step].food] = v;
+    if (a.step < a.questions.length - 1) a.step += 1;
+    else { a.result = ateResult(app.store, a.items, a.answers); a.phase = 'done'; }
+    render();
+  },
+  'ate-back'() {
+    const a = app.ui.ate;
+    if (a.step > 0) { a.step -= 1; render(); } else listen();
+  },
   async 'ate-done'() {
     const ev = app.ui.ate.result?.event;
     app.ui.ate = freshAte();

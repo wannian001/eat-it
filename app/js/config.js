@@ -3,4 +3,7 @@ export const CONFIG = {
   // Base URL of a server that speaks the httpAdapter contract (app/README.md). null = this device only.
   // Only the "You" fridge uses it; John and May always stay local demo data.
   store: null,
+  // Optional: a server that turns what you said into food, e.g. an AI in your own system
+  // (contract in app/README.md). null = the built-in rule-based reader, which works offline.
+  ai: null,
 };

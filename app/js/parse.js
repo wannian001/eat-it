@@ -2,6 +2,8 @@
 //   "I had one bag of beef, two tomatoes and three eggs."
 //   -> beef 1 bag, tomato 2, eggs 3, plus the character spans to highlight on screen.
 // Only foods in the catalogue are recognised. Anything else is ignored rather than guessed.
+// exact = a number or a container was said ("two tomatoes", "one bag of beef"). Anything vaguer
+// ("some spinach", "the curry") is asked about afterwards: how much is left?
 
 import { FOODS } from './foods.js';
 
@@ -28,12 +30,12 @@ function quantityBefore(text, start, floor) {
   const seg = text.slice(floor, start);
   const lead = (m) => start - m[0].replace(/^[^a-z0-9]/i, '').length;
   const p = seg.match(PART_RE);
-  if (p) return { qty: 1, unit: null, part: true, from: lead(p) };
+  if (p) return { qty: 1, unit: null, part: true, exact: false, from: lead(p) };
   const m = seg.match(QTY_RE);
-  if (!m || (!m[1] && !m[2])) return { qty: 1, unit: null, part: false, from: start };
+  if (!m || (!m[1] && !m[2])) return { qty: 1, unit: null, part: false, exact: false, from: start };
   const n = m[1] ? m[1].toLowerCase() : null;
   const qty = n == null ? 1 : /^\d/.test(n) ? parseFloat(n) : NUMBERS[n];
-  return { qty, unit: m[2] ? CONTAINERS[m[2].toLowerCase()] : null, part: false, from: lead(m) };
+  return { qty, unit: m[2] ? CONTAINERS[m[2].toLowerCase()] : null, part: false, exact: true, from: lead(m) };
 }
 
 export function parseAte(text) {
@@ -52,8 +54,8 @@ export function parseAte(text) {
   const merged = [];
   for (const it of items) {
     const same = merged.find((x) => x.food === it.food && x.unit === it.unit && !x.part && !it.part);
-    if (same) { same.qty += it.qty; same.spans.push([it.from, it.end]); }
-    else merged.push({ food: it.food, qty: it.qty, unit: it.unit, part: it.part, spans: [[it.from, it.end]] });
+    if (same) { same.qty += it.qty; same.exact = same.exact && it.exact; same.spans.push([it.from, it.end]); }
+    else merged.push({ food: it.food, qty: it.qty, unit: it.unit, part: it.part, exact: it.exact, spans: [[it.from, it.end]] });
   }
   return merged;
 }

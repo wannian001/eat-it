@@ -7,7 +7,8 @@
 //   put      { lines: [{ food, name?, cat?, qty, unit, place, spot, owner, date, bags, guess? }], source? }
 //   use      { lot, how: 'one' | 'some' }        Used it (one fewer) / Used some (partly used)
 //   toss     { lot }                              Threw it out
-//   ate      { items: [{ food, qty, unit, part }] }  "I ate …"
+//   ate      { items: [{ food, qty, unit, part, left }] }  "I ate …"; left = plenty|little|none answers
+//                                                  "After today, is there any curry left?"
 //   fix      { lot, on }                          change an estimate
 //   date     { lot, date }                        set the date from the pack
 //   amount   { lot, value: Full|Most|Half|Low }
@@ -187,9 +188,17 @@ export function lotsOf(s, foodId) {
 }
 
 // Take what the user said they ate. Returns how many units were actually taken.
-export function consume(s, { food, qty = 1, unit, part }) {
+export function consume(s, { food, qty = 1, unit, part, left: remains }) {
   const lots = lotsOf(s, food);
   if (!lots.length) return 0;
+  // The user said how much is left of the one they used.
+  if (remains) {
+    const l = lots[0];
+    if (remains === 'none') { s.lots.delete(l.id); return units(l); }
+    l.part = true;
+    l.amount = remains === 'little' ? 'Low' : 'Most';
+    return 0;
+  }
   if (part) { use(s, lots[0], 'some'); return 1; }
   let left = qty, taken = 0;
   const byBag = unit === 'bag';

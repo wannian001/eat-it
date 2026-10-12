@@ -401,6 +401,23 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .mic { width: 92px; height: 92px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--sprout); color: var(--white); box-shadow: 0 0 0 14px color-mix(in srgb, var(--sprout) 22%, transparent), 0 0 0 28px color-mix(in srgb, var(--sprout) 10%, transparent); }
 .mic.stop { width: 66px; height: 66px; box-shadow: 0 0 0 8px color-mix(in srgb, var(--sprout) 22%, transparent); }
 .ate-note { color: var(--stone); text-align: center; max-width: 28ch; }
+.ate-hint { color: var(--stone); text-align: center; max-width: 30ch; margin-top: -18px; }
+.thinking { display: flex; align-items: center; gap: 4px; color: var(--stone); font: 700 14px var(--font-body); animation: breathe 1.2s ease-in-out infinite alternate; }
+@keyframes breathe { from { opacity: .45; } }
+.ask-step { padding: 6px 12px; border-radius: 999px; background: var(--white); font: 800 13px var(--font-title); }
+.ask-kicker { display: flex; align-items: center; gap: 2px; margin: 4px 0 14px; color: var(--stone); font: 700 13px var(--font-body); }
+.ask-pic { display: grid; place-items: center; width: 120px; height: 120px; margin-bottom: 16px; border-radius: 30px; background: var(--white); }
+.ask-opts { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.ask-opt { display: flex; align-items: center; gap: 14px; min-height: 60px; padding: 0 18px; border-radius: 20px; border: 1.5px solid var(--line); background: var(--white); font: 800 17px var(--font-title); text-align: left; }
+.ask-opt.on, .ask-opt:active { border-color: var(--leaf-deep); background: var(--leaf); }
+.lvl { display: inline-flex; align-items: flex-end; gap: 3px; height: 22px; }
+.lvl i { width: 7px; border-radius: 3px; background: var(--line); }
+.lvl i:nth-child(1) { height: 8px; } .lvl i:nth-child(2) { height: 14px; } .lvl i:nth-child(3) { height: 20px; }
+.lvl i.on { background: var(--sprout); }
+.left-row .lvl { margin-left: auto; }
+.left-row small { color: var(--stone); font-size: 12px; min-width: 6.5em; text-align: right; }
+.got-none .got-badge { background: var(--mist); color: var(--stone); }
+.got-plenty .got-badge, .got-little .got-badge { background: var(--leaf-soft); color: var(--leaf-deep); }
 .said { font: 800 24px/1.75 var(--font-title); letter-spacing: -0.01em; }
 .said mark { background: color-mix(in srgb, var(--leaf) 75%, transparent); color: inherit; padding: 1px 6px; border-radius: 8px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .said-pic { display: inline-block; vertical-align: -6px; margin: 0 6px; }
