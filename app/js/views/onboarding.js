@@ -1,5 +1,5 @@
-// First run for "You" (v0.2 sign-up, without the email code): where you keep food, then whether
-// you share a kitchen. John and May are demo accounts and skip this.
+// Setting up a new user (v0.2 sign-up, without the email code): name, where you keep food, then
+// whether you share a kitchen. John and May come set up already.
 import { ICON, appIcon, wordmark } from '../icons.js';
 import { esc } from '../ui.js';
 
@@ -18,7 +18,7 @@ export function onboardingPage(app) {
       <p class="muted">Eat It! keeps track of the food in your fridge, freezer and cupboard, and quietly tells you what to eat first.</p>
       <label class="fld"><span>Your first name</span><input type="text" id="ob-name" autocomplete="given-name" value="${esc(o.name)}" placeholder="e.g. Alex"></label>
       <div class="btn-row"><button class="btn btn-primary" data-act="ob" data-arg="places">Set up my kitchen</button></div>
-      <p class="small">Or look around a demo home first: <button class="link" data-act="person" data-arg="may">May</button> · <button class="link" data-act="person" data-arg="john">John</button></p>`;
+      <p class="small"><button class="link" data-act="user-add-cancel">${ICON.back({ size: 14 })}Back to users</button></p>`;
   } else if (o.step === 'places') {
     body = `${brand}${dots(1)}<h1>Where do you keep food?</h1><p class="muted">Tick the places you really have. You can change this any time.</p>
       ${BASE.map(([id, n, k]) => `<label class="pchk"><input type="checkbox" data-change="ob-place" data-arg="${id}"${o.places[id] ? ' checked' : ''}><span>${n}</span><small>${KIND[k]}</small></label>`).join('')}

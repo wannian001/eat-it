@@ -109,14 +109,17 @@ function inner(app) {
     </div>`;
   }
 
-  const note = a.phase === 'nosupport' ? '<p class="ate-note">Voice isn\'t available in this browser. Tap food on the fridge and choose Used it instead.</p>' : '';
+  const note = a.phase === 'nosupport' ? '<p class="ate-note">Voice isn\'t available here, so type it instead.</p>' : '';
+  const typed = a.typing
+    ? `<div class="ate-type"><input id="ate-text" type="text" placeholder="e.g. made curry with two chicken thighs" autocomplete="off" aria-label="What you ate" data-enter="ate-typed"><button class="btn btn-primary sm" data-act="ate-typed">Go</button></div>`
+    : '<button class="link" data-act="ate-type">Or type it</button>';
   return `<div class="screen ate">
     <header class="cam-top">${close}</header>
     <main class="scroll ate-body center">
       <h1 class="display">What did you<br>eat today?</h1>
       <p class="ate-hint">Tell it like you'd tell a friend: what you cooked and what went in.</p>
       <button class="mic" data-act="listen" aria-label="Start talking">${ICON.mic({ size: 30, stroke: 2.2 })}</button>
-      ${note}
+      ${note}${typed}
     </main>
   </div>`;
 }

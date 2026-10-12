@@ -1,9 +1,10 @@
 // Wiring: the shell (desktop side nav / phone tab bar), routes (#/plan …), one click handler for
-// every data-act, change/input handlers, the voice session and the demo steps.
-import { PERSONAS, spotFor } from './seed.js';
+// every data-act, change/input handlers, the voice session and the user system.
+import { spotFor } from './seed.js';
+import { userProfile, currentUser, signIn, signOut, addUser, renameUser, removeUser, restartUser } from './users.js';
 import { addDays, daysBetween } from './dates.js';
 import { CONFIG } from './config.js';
-import { openStore, localAdapter, memoryAdapter, httpAdapter, prefs } from './store.js';
+import { openStore, localAdapter, httpAdapter, prefs } from './store.js';
 import { matchFood, customId, food, foodName, guessDays, defaultQty, shortName } from './foods.js';
 import { placeOf, firstOfKind, oldestFrozen, modeOf } from './state.js';
 import { ICON, appIcon, wordmark } from './icons.js';
@@ -15,7 +16,8 @@ import { atePage, ateResult, questionsFor } from './views/ate.js';
 import { understand } from './ai.js';
 import { planPage } from './views/plan.js';
 import { shopPage, shopCheck } from './views/shop.js';
-import { householdPage, peopleSwitch, scenesHtml } from './views/household.js';
+import { householdPage } from './views/household.js';
+import { signInPage, userList } from './views/people.js';
 import { widgetsPage, lockPage } from './views/phone.js';
 import { onboardingPage, freshOnboarding } from './views/onboarding.js';
 import { lotSheet, planChangeSheet, placesSheet, measureSheet, typeSheet, consentSheet, emailSheet, pickSheet } from './views/sheets.js';
@@ -33,7 +35,7 @@ const freshAte = () => ({ phase: 'idle', text: '', items: [], questions: [], ans
 const freshUi = (keep = {}) => ({
   view: prefs.get('view', 'picture'), sheet: null, add: freshAdd(), ate: freshAte(),
   food: { place: null, q: '', own: 'all', view: 'picture' }, toast: null, shopAlert: null, flash: false,
-  lastPlanEvent: null, confirm: null, lockDismissed: false, scene: null, onb: freshOnboarding(), ...keep,
+  lastPlanEvent: null, confirm: null, lockDismissed: false, userMenu: false, adding: false, onb: freshOnboarding(), ...keep,
 });
 const app = { store: null, route: 'home', ui: freshUi() };
 
@@ -49,21 +51,18 @@ function shell(content) {
     <nav class="side-nav">${NAV.map(([r, t, ic]) => `<button class="nav-item${route === r || (r === 'home' && route === 'home') ? ' on' : ''}" data-act="go" data-arg="${r}"${route === r ? ' aria-current="page"' : ''}>${ICON[ic]({ size: 20 })}${t}</button>`).join('')}</nav>
     <div class="side-sub"><button class="nav-item sm${route === 'widgets' ? ' on' : ''}" data-act="go" data-arg="widgets">${ICON.grid({ size: 18 })}Widgets</button><button class="nav-item sm${route === 'lock' ? ' on' : ''}" data-act="go" data-arg="lock">${ICON.phone({ size: 18 })}Lock screen</button></div>
     <div class="side-bottom">
-      ${p.scenes?.length ? `<details class="side-demo"${ui.scene != null ? ' open' : ''}><summary>演示步骤 · ${esc(p.name)}</summary>${scenesHtml(app)}${ui.scene != null ? '<button class="link" data-act="scene-exit">退出演示步骤</button>' : ''}</details>` : ''}
-      <div class="side-me"><span class="avatar av-0">${esc(name[0])}</span><span><b>${esc(name)}</b><small>${esc(s.house?.name || (p.demo ? 'Lives alone' : 'Your own data'))}</small></span></div>
-      ${peopleSwitch(app)}
+      ${ui.userMenu ? userList(app, { compact: true }) : ''}
+      <button class="side-me" data-act="user-menu" aria-expanded="${!!ui.userMenu}" aria-label="Signed in as ${esc(name)}. Switch user"><span class="avatar av-0">${esc(name[0])}</span><span><b>${esc(name)}</b><small>${esc(s.house?.name || 'Lives alone')}</small></span>${ICON.settings({ size: 16 })}</button>
     </div>
   </aside>`;
   const tabs = NO_TABS.has(route) ? '' : `<nav class="tabs" aria-label="Main">${TABS.map(([r, t, ic]) => `<button class="tab${route === r ? ' on' : ''}" data-act="go" data-arg="${r}"${route === r ? ' aria-current="page"' : ''}>${ICON[ic]({ size: 22 })}<span>${t}</span></button>`).join('')}</nav>`;
   const pill = route === 'home' || route === 'food'
     ? `<div class="pill-bar"><div class="seg"><button class="seg-primary" data-act="go" data-arg="add">${ICON.plus({ size: 18, stroke: 2.4 })}Add food</button><button class="seg-plain" data-act="go" data-arg="ate">${ICON.minus({ size: 18, stroke: 2.4 })}I ate</button></div></div>` : '';
-  const banner = ui.scene != null ? `<div class="scene-bar">演示 ${ui.scene + 1}/${p.scenes.length} · ${esc(p.scenes[ui.scene].t)}<button class="link" data-act="scene-exit">退出</button></div>` : '';
   const toast = ui.toast ? `<div class="toast" role="status">${esc(ui.toast.msg)}${ui.toast.undo ? `<button data-act="undo" data-arg="${esc(ui.toast.undo)}">Undo</button>` : ''}</div>` : '';
-  return `<div class="shell r-${route}${FULL.has(route) ? ' full' : ''}${NO_TABS.has(route) ? ' no-tabs' : ''}">${side}<main class="main" id="main">${banner}${content}</main>${pill}${tabs}${toast}</div>`;
+  return `<div class="shell r-${route}${FULL.has(route) ? ' full' : ''}${NO_TABS.has(route) ? ' no-tabs' : ''}">${side}<main class="main" id="main">${content}</main>${pill}${tabs}${toast}</div>`;
 }
 
 function render() {
-  if (!app.store) return;
   const scroller = root.querySelector('.main');
   const keep = scroller && root.dataset.route === app.route ? scroller.scrollTop : 0;
   const sheetWasOpen = !!root.querySelector('.sheet');
@@ -71,9 +70,10 @@ function render() {
   const focusId = active && root.contains(active) && active.id ? active.id : null;
   const sel = focusId && 'selectionStart' in active ? [active.selectionStart, active.selectionEnd] : null;
 
-  const s = app.store.state;
   let html;
-  if (!app.store.persona.demo && !s.setUp) html = onboardingPage(app);
+  if (app.ui.adding) html = onboardingPage(app);
+  else if (!app.store) html = signInPage();
+  else if (!app.store.persona.builtin && !app.store.state.setUp) html = onboardingPage(app);
   else {
     const sheet = app.ui.sheet && SHEETS[app.ui.sheet.type] ? SHEETS[app.ui.sheet.type](app) : '';
     html = shell(ROUTES[app.route](app)) + sheet;
@@ -108,7 +108,7 @@ function onRoute() {
   if (r !== 'ate') stopVoice();
   if (r === 'add' && !['scan', 'review', 'ways'].includes(app.route)) app.ui.add = freshAdd();
   if (r === 'ate' && app.route !== 'ate') app.ui.ate = freshAte();
-  if (r !== app.route) app.ui.confirm = null;
+  if (r !== app.route) { app.ui.confirm = null; app.ui.userMenu = false; }
   if (r === 'lock' && app.route !== 'lock') app.ui.lockDismissed = false;
   app.route = r;
   if (!app.ui.keepSheet) app.ui.sheet = null;
@@ -117,15 +117,14 @@ function onRoute() {
   if (r !== 'review') document.getElementById('main')?.scrollTo?.(0, 0);
 }
 
-// ---------- people & demo steps ----------
+// ---------- users ----------
 
-async function openPerson(id, { persona, adapter } = {}) {
-  const base = PERSONAS[id] || PERSONAS.john;
-  const p = persona || base;
-  const a = adapter || (!base.demo && CONFIG.store ? httpAdapter(CONFIG.store) : localAdapter);
-  app.store = await openStore(p, a);
+async function openUser(id) {
+  const persona = userProfile(id);
+  if (!persona) { app.store = null; return; }
+  app.store = await openStore(persona, CONFIG.store ? httpAdapter(CONFIG.store) : localAdapter);
   app.store.subscribe(onStore);
-  if (!persona) prefs.set('person', base.id);
+  signIn(id);
 }
 
 function onStore() { render(); }
@@ -136,41 +135,12 @@ function toast(msg, undo = null) {
   toast.t = setTimeout(() => { app.ui.toast = null; render(); }, 5000);
 }
 
-// Lines of a demo receipt as put in after a normal check: unsure lines "Yes", non-food skipped.
-function receiptPut(src) {
-  app.ui.add = freshAdd({ src });
-  const lines = buildLines(app, src).map((l) => ({ ...l, answer: l.unsure ? l.food : null }));
-  return putLines(app, lines);
-}
-
-async function runScene(i) {
-  const base = PERSONAS[app.store.persona.id];
-  const sc = base.scenes[i];
-  stopVoice();
-  const persona = { ...base, today: addDays(base.today, sc.offset || 0), clock: sc.clock, lockClock: sc.clock };
-  await openPerson(base.id, { persona, adapter: memoryAdapter() });
-  app.ui = freshUi({ scene: i, view: app.ui.view });
-  const today = app.store.today;
-  for (const step of sc.doing || []) {
-    if (step === 'receipt') await app.store.dispatch({ type: 'put', lines: receiptPut('receipt'), source: 'receipt', day: addDays(base.today, 0) });
-    const m = /^(out|busy):(-?\d+)$/.exec(step);
-    if (m) await app.store.dispatch({ type: 'plan', day: addDays(today, Number(m[2])), mode: m[1] });
-  }
-  app.ui.add = freshAdd();
-  app.ui.flash = false;
-  if (sc.review) { app.ui.add = freshAdd({ src: sc.review, mode: sc.review }); app.ui.add.lines = buildLines(app, sc.review); }
-  if (sc.sheet === 'oldest') { const l = oldestFrozen(app.store.state); if (l) { app.ui.sheet = { type: 'lot', arg: l.id }; app.ui.keepSheet = true; } }
-  if (sc.shop) app.ui.shopAlert = shopCheck(app, sc.shop);
-  go(sc.route);
-}
 
 // ---------- voice ----------
 
 let rec = null;
-let demoTimer = null;
 
 function stopVoice() {
-  if (demoTimer) { clearInterval(demoTimer); demoTimer = null; }
   if (rec) { rec.onend = null; try { rec.abort(); } catch { /* already stopped */ } rec = null; }
 }
 
@@ -196,23 +166,10 @@ async function finishVoice() {
 
 function listen() {
   stopVoice();
-  const p = app.store.persona;
   app.ui.ate = { ...freshAte(), phase: 'listening' };
   render();
-  // John and May say their storyboard line, word by word, so a screen recording is repeatable.
-  if (p.said) {
-    const words = p.said.split(' ');
-    let i = 0;
-    demoTimer = setInterval(() => {
-      i += 1;
-      app.ui.ate.text = words.slice(0, i).join(' ');
-      render();
-      if (i >= words.length) { clearInterval(demoTimer); demoTimer = null; }
-    }, 260);
-    return;
-  }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { app.ui.ate.phase = 'nosupport'; render(); return; }
+  if (!SR) { app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); return; }
   rec = new SR();
   rec.lang = 'en-AU';
   rec.interimResults = true;
@@ -228,14 +185,13 @@ function listen() {
     render();
   };
   rec.onerror = (e) => {
-    if (['not-allowed', 'service-not-allowed', 'audio-capture'].includes(e.error)) { stopVoice(); app.ui.ate.phase = 'nosupport'; render(); }
+    if (['not-allowed', 'service-not-allowed', 'audio-capture', 'network'].includes(e.error)) { stopVoice(); app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); }
   };
   rec.onend = () => { rec = null; if (app.ui.ate.phase === 'listening') finishVoice(); };
-  try { rec.start(); } catch { rec = null; app.ui.ate.phase = 'nosupport'; render(); }
+  try { rec.start(); } catch { rec = null; app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); }
 }
 
 function stopListening() {
-  if (demoTimer) { clearInterval(demoTimer); demoTimer = null; app.ui.ate.text = app.store.persona.said; }
   if (rec) { rec.stop(); return; }
   finishVoice();
 }
@@ -480,6 +436,14 @@ const ACT = {
 
   listen: () => listen(),
   stop: () => stopListening(),
+  'ate-type'() { app.ui.ate.typing = true; render(); document.getElementById('ate-text')?.focus(); },
+  'ate-typed'() {
+    const text = val('ate-text').trim();
+    if (!text) { document.getElementById('ate-text')?.focus(); return; }
+    stopVoice();
+    app.ui.ate = { ...freshAte(), text };
+    finishVoice();
+  },
   'ate-answer'(v) {
     const a = app.ui.ate;
     a.answers[a.questions[a.step].food] = v;
@@ -537,21 +501,31 @@ const ACT = {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   },
   async reset() {
+    const p = app.store.persona;
     app.ui.confirm = null;
-    if (app.ui.scene != null) { await ACT['scene-exit'](); return; }
     await app.store.reset();
+    if (p.builtin) { restartUser(p.id); await openUser(p.id); }
     app.ui = freshUi({ view: app.ui.view });
     go('home');
   },
 
-  async person(id) {
+  // ----- users -----
+  'user-menu'() { app.ui.userMenu = !app.ui.userMenu; render(); },
+  async user(id) {
     stopVoice();
-    await openPerson(id);
+    await openUser(id);
     app.ui = freshUi({ view: app.ui.view });
     go('home');
   },
-  scene(i) { runScene(Number(i)); },
-  async 'scene-exit'() { await ACT.person(app.store.persona.id); },
+  'user-add'() { stopVoice(); app.ui = freshUi({ view: app.ui.view, adding: true }); render(); },
+  'user-add-cancel'() { app.ui.adding = false; render(); },
+  'sign-out'() { stopVoice(); signOut(); app.store = null; app.ui = freshUi({ view: app.ui.view }); go('home'); },
+  async 'user-remove'() {
+    const id = app.store.persona.id;
+    await app.store.reset();
+    removeUser(id);
+    ACT['sign-out']();
+  },
 
   ob(step) {
     const n = document.getElementById('ob-name');
@@ -577,7 +551,8 @@ const ACT = {
     const places = [...Object.entries(BASE).filter(([id]) => o.places[id]).map(([id, [name, kind]]) => ({ id, name, kind, sub: '', full: null })),
       ...o.extra.map((x, i) => ({ id: `x${i}`, name: x.name, kind: x.kind, sub: '', full: null }))];
     const code = o.house === 'create' ? `SL-${1000 + Math.floor(Math.random() * 9000)}` : o.house === 'join' ? (o.code || null) : null;
-    await dispatch({ type: 'setup', name: o.name || 'You', places, house: o.house, code });
+    if (app.ui.adding) { await openUser(addUser(o.name)); app.ui.adding = false; }
+    await dispatch({ type: 'setup', name: o.name || app.store.persona.name, places, house: o.house, code });
     go('home');
   },
 };
@@ -607,7 +582,11 @@ const CHANGE = {
   'place-full'(id, v) { dispatch({ type: 'place.edit', id, full: Number(v), src: 'hand' }); },
   'measure-val'(_a, v) { app.ui.sheet.val = Number(v); render(); },
   'line-date'(k, v) { if (!v) return; const [kind, on] = v.split('|'); line(k).date = { kind, on }; render(); },
-  'profile-name'(_a, v) { if (v.trim()) dispatch({ type: 'profile', name: v.trim() }); },
+  'profile-name'(_a, v) {
+    if (!v.trim()) return;
+    if (!app.store.persona.builtin) renameUser(app.store.persona.id, v.trim());
+    dispatch({ type: 'profile', name: v.trim() });
+  },
   'ob-place'(id, _v, el) { app.ui.onb.places[id] = el.checked; },
 };
 
@@ -655,7 +634,8 @@ window.addEventListener('hashchange', onRoute);
 (async () => {
   const params = new URLSearchParams(location.search);
   if (params.get('frame') === '0') document.body.classList.add('bare');
-  const asked = params.get('p');
-  await openPerson(PERSONAS[asked] ? asked : prefs.get('person', 'john'));
+  const asked = params.get('user') || params.get('p');
+  const id = asked && userProfile(asked) ? asked : currentUser();
+  if (id) await openUser(id);
   onRoute();
 })();

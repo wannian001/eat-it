@@ -46,7 +46,7 @@ export function emptyState(persona) {
     house: clone(persona.house) || null,
     links: { email: false, senders: [], account: false },
     done: {}, // receipt / email keys already put in
-    setUp: !!persona.demo,
+    setUp: !!persona.builtin,
   };
 }
 

@@ -7,11 +7,12 @@ import { dateTag, urgency, addDays, daysBetween } from '../js/dates.js';
 import { parseAte } from '../js/parse.js';
 import { matchFood } from '../js/foods.js';
 import { replay, eatFirst, countOf, nudge, oldestFrozen, bagNumber, lastSplit, modeOf, planWarnings, plannedDay } from '../js/state.js';
-import { PERSONAS } from '../js/seed.js';
+import { BUILTIN, blankUser } from '../js/seed.js';
+import { shiftDates } from '../js/users.js';
 import { openStore, httpAdapter, memoryAdapter } from '../js/store.js';
 
 const TODAY = '2026-10-10'; // Saturday, the canvas demo day
-const JOHN = PERSONAS.john, MAY = PERSONAS.may;
+const JOHN = BUILTIN.john, MAY = BUILTIN.may;
 const john = (...events) => replay([...JOHN.seed, ...events], JOHN);
 const may = (...events) => replay([...MAY.seed, ...events], MAY);
 let n = 0;
@@ -124,12 +125,12 @@ test('places, settings, shopping and first-run setup', () => {
   assert.equal(s.lots.get('john-1004:7').place, 'fridge');
   assert.equal(s.settings.quiet, false);
   assert.equal(s.shop.find((x) => x.id === 'x').done, true);
-  const me = replay([ev('setup', { name: 'Jiakuo', places: [{ id: 'fridge', name: 'Fridge', kind: 'cold' }], house: 'alone' })], PERSONAS.me);
+  const me = replay([ev('setup', { name: 'Jiakuo', places: [{ id: 'fridge', name: 'Fridge', kind: 'cold' }], house: 'alone' })], blankUser('u-test', 'Jiakuo'));
   assert.equal(me.setUp, true);
   assert.equal(me.profile.name, 'Jiakuo');
 });
 
-test('a store over HTTP saves and reloads events; demo scenes stay in memory', async () => {
+test('a store over HTTP saves and reloads events; a memory store forgets', async () => {
   const saved = [];
   const server = http.createServer((req, res) => {
     if (req.method === 'POST') {
@@ -144,7 +145,7 @@ test('a store over HTTP saves and reloads events; demo scenes stay in memory', a
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${server.address().port}/api/eatit`;
   try {
-    const me = { ...PERSONAS.me, today: TODAY };
+    const me = { ...blankUser('u-test', 'You'), today: TODAY };
     const store = await openStore(me, httpAdapter(base));
     await store.dispatch({ type: 'setup', name: 'You', places: [{ id: 'fridge', name: 'Fridge', kind: 'cold' }], house: 'alone' });
     await store.dispatch({ type: 'put', lines: [{ food: 'eggs', qty: 12, unit: 'pc', place: 'fridge', spot: 'top', date: { kind: 'best_before', on: '2026-10-30' } }] });
@@ -158,4 +159,14 @@ test('a store over HTTP saves and reloads events; demo scenes stay in memory', a
   const demo = await openStore(JOHN, memoryAdapter());
   await demo.dispatch({ type: 'toss', lot: 'john-1004:0' });
   assert.equal((await openStore(JOHN, memoryAdapter())).state.lots.has('john-1004:0'), true);
+});
+
+test("built-in users start on the day they are first opened", () => {
+  const shifted = shiftDates({ seed: JOHN.seed }, 2).seed;
+  const s = replay(shifted, JOHN);
+  // Same fridge, two days later: milk is still "use by" tomorrow, the beef still 4 weeks frozen.
+  assert.deepEqual(eatFirst(s, '2026-10-12').map((x) => x.food), ['milk', 'curry', 'spinach']);
+  assert.equal(nudge(s, '2026-10-12')?.food, 'beef');
+  assert.equal(shiftDates('not a date', 3), 'not a date');
+  assert.equal(shiftDates({ on: '2026-10-31' }, 1).on, '2026-11-01');
 });

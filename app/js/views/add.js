@@ -1,6 +1,7 @@
 // Adding food. Desktop: the v0.2 "How did it come in?" page. Phone: board 03's camera.
 // Every way ends in the same "New food" check (board 03), which on the desktop sits next to the
-// receipt, email or photo it came from (v0.2). Recognition is simulated: John and May get demo lines.
+// receipt, email or photo it came from (v0.2). Recognition is simulated: John and May get fixed lines,
+// new users pick food by tapping until a real recogniser is connected.
 import { FOODS, CATS, food, foodName, guessDays, defaultQty } from '../foods.js';
 import { lastSplit, usual, placeOf, hasFreezer, firstOfKind } from '../state.js';
 import { receiptDay, addDays, dateTag, fmtDay, relDay } from '../dates.js';

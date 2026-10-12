@@ -1,12 +1,13 @@
-// People and their starting homes. John and May are the two personas from the group's fieldwork
-// report (fictional; every food, date, price and name here is made up). The fridge contents follow
-// the hi-fi canvas v3; the cupboard, week plan, shopping list, receipts and settings come from the
-// v0.2 prototype. Their demo day is Saturday 10 October 2026, the day shown on the canvas.
-// "You" starts empty, uses the real date and only ever holds what the user puts in.
+// The two users the app ships with, and the template for new ones. John and May are the personas
+// from the group's fieldwork report (fictional; every food, date, price and name here is made up).
+// They are ordinary users: real date, their own saved data. Their starting fridge follows the hi-fi
+// canvas v3; the cupboard, week plan, shopping list, receipts and settings come from the v0.2
+// prototype. It is written for SEED_DAY and moved to the day each user is first opened (users.js).
 
 import { food as foodOf } from './foods.js';
 
-const DAY = '2026-10-10';
+export const SEED_DAY = '2026-10-10';
+const DAY = SEED_DAY;
 
 const put = (id, day, lines) => ({ id, type: 'put', day, lines, seed: true });
 const plan = (day, lot) => ({ id: `plan-${day}-${lot}`, type: 'plan.add', day, lot, seed: true });
@@ -17,10 +18,9 @@ const useBy = (on) => ({ kind: 'use_by', on });
 const bb = (on) => ({ kind: 'best_before', on });
 const none = (note) => ({ kind: 'none', note });
 
-export const PERSONAS = {
+export const BUILTIN = {
   john: {
-    id: 'john', name: 'John', initial: 'J', demo: true, age: 23, mail: 'john.student@example.com',
-    today: DAY, clock: '14:20', lockClock: '7:42',
+    id: 'john', name: 'John', initial: 'J', builtin: true, age: 23, mail: 'john.student@example.com',
     about: '23 岁 · 一个人住 · 有冰箱和冷冻室 · 一次买一到两周',
     places: [
       { id: 'fridge', name: 'Fridge', kind: 'cold', sub: 'all yours', full: 35 },
@@ -30,7 +30,6 @@ export const PERSONAS = {
     house: null, others: [],
     settings: { summary: true, quiet: true, lockNames: true, shareFree: false, shareShelf: false },
     usual: ['milk', 'spinach', 'eggs', 'bread'],
-    said: 'I cooked one bag of beef with two tomatoes, and had some of the curry.',
     shop: [
       { id: 's1', name: 'Eggs', own: 'mine', who: 'John' },
       { id: 's2', name: 'Bananas', own: 'mine', who: 'John' },
@@ -69,7 +68,7 @@ export const PERSONAS = {
       plan('2026-10-14', 'john-1008:4'),
       plan('2026-10-15', 'john-0930:0'), plan('2026-10-15', 'john-1008:3'),
     ],
-    // What the demo "AI scan" of the bench returns: the 7 lines on canvas board 03.
+    // What the simulated "AI scan" of the bench returns: the 7 lines on canvas board 03.
     photo: { when: DAY, lines: [
       { food: 'beef', qty: 1000, unit: 'g', date: useBy('2026-10-17'), place: 'freezer' },
       { food: 'chicken', qty: 4, unit: 'pc', date: useBy('2026-10-15') },
@@ -96,18 +95,10 @@ export const PERSONAS = {
       { raw: 'Paper towel 4pk', price: '5.00', food: 'papertowel', qty: 4, unit: 'pc', nonfood: true },
     ] },
     barcode: { raw: '9 300633 OAT MILK 1L', food: 'oatmilk', qty: 1, unit: 'L', date: bb('2026-11-24') },
-    scenes: [
-      { t: '周六 7:42 · 锁屏：冻了 4 周的那袋牛肉', d: '不开 App 就知道先用哪袋（分镜 9e）', clock: '7:42', route: 'lock' },
-      { t: '周六 14:20 · 大采购后扫小票', d: 'AI 读出 8 行：1 行要确认、1 行不是食物；肉建议分 5 袋', clock: '14:20', route: 'review', review: 'receipt' },
-      { t: '肉分袋进冷冻室', d: '每袋自动带上冷冻日期；最旧那袋还在最前面', clock: '14:24', route: 'home', doing: ['receipt'] },
-      { t: '周二 21:30 · 期中周三天不做饭', d: '菜自动挪到下一个做饭的日子，放不到那天的会提醒', offset: 3, clock: '21:30', route: 'plan', doing: ['receipt', 'busy:1', 'out:2', 'out:3'] },
-      { t: '周六 · 冷冻室最旧的先用', d: '按冷冻日期排，最旧那袋排最前，附解冻指引', offset: 7, clock: '11:00', route: 'home', doing: ['receipt'], sheet: 'oldest' },
-    ],
   },
 
   may: {
-    id: 'may', name: 'May', initial: 'M', demo: true, age: 21, mail: 'may.student@example.com',
-    today: DAY, clock: '18:10', lockClock: '8:00',
+    id: 'may', name: 'May', initial: 'M', builtin: true, age: 21, mail: 'may.student@example.com',
     about: '21 岁 · 和两个同学合租 · 共用冰箱、没有冷冻室 · 几乎天天买',
     places: [
       { id: 'fridge', name: 'Fridge', kind: 'cold', sub: 'your shelf + shared', full: 85 },
@@ -119,7 +110,6 @@ export const PERSONAS = {
     shelves: [{ name: 'Top shelf', who: 'Lily & Sam', pct: 70 }, { name: 'Shared shelf', who: 'Everyone', pct: 60 }, { name: 'Your shelf', who: 'May', pct: 85 }, { name: 'Crisper', who: 'May', pct: 50 }],
     settings: { summary: true, quiet: true, lockNames: true, shareFree: true, shareShelf: true },
     usual: ['milk', 'strawberry', 'yoghurt', 'bread'],
-    said: 'I made a stir fry with two chicken thighs, some spinach and the mushrooms.',
     shop: [
       { id: 's1', name: 'Rice 5 kg', own: 'shared', who: null, note: 'Shared rice is running low' },
       { id: 's2', name: 'Milk 2 L', own: 'shared', who: 'Lily' },
@@ -169,26 +159,20 @@ export const PERSONAS = {
       { raw: 'Dishwashing liquid 500ml x1', price: '3.00', food: 'dishliquid', qty: 1, unit: 'pc', owner: 'shared', nonfood: true },
     ] },
     barcode: { raw: '9 300601 GREEK YOGHURT 1KG', food: 'yoghurt', qty: 1, unit: 'pc', date: useBy('2026-10-24') },
-    scenes: [
-      { t: '周六 18:10 · 朋友约她出去吃', d: '打开 App：今晚原本要做的菜、哪些快坏，一页看到', clock: '18:10', route: 'home' },
-      { t: '点 Eating out tonight', d: '今晚的菜自动挪到周日，最急的鸡腿肉排第一（分镜 10b）', clock: '18:11', route: 'plan', doing: ['out:0'] },
-      { t: '周日 08:00 · 只有一条提醒', d: '今天要用：鸡腿肉（包装日期）和菠菜（包装日期）', offset: 1, clock: '8:00', route: 'lock', doing: ['out:-1'] },
-      { t: '周一 17:30 · 在超市', d: '想买大包沙拉，提醒空间不够；加牛奶，提醒室友已经在买', offset: 2, clock: '17:30', route: 'shop', doing: ['out:-2'], shop: 'Salad kit, family size' },
-      { t: '周一 22:30 · 睡前说 10 秒', d: '不用每顿都开 App（分镜 10c）', offset: 2, clock: '22:30', route: 'ate', doing: ['out:-2'] },
-    ],
   },
 
-  me: {
-    id: 'me', name: 'You', initial: 'Y', demo: false, mail: '',
-    today: null, clock: null, lockClock: null,
-    places: [], house: null, others: [],
-    settings: { summary: true, quiet: true, lockNames: false, shareFree: false, shareShelf: false },
-    usual: null, said: null, shop: [], suggest: ['Milk 2 L', 'Eggs', 'Bread'], overlaps: [],
-    seed: [], photo: null, receipt: null, email: null, barcode: null, scenes: [],
-  },
 };
 
-export const PERSONA_IDS = ['john', 'may', 'me'];
+// A new user starts with nothing and sets up their own places first (onboarding).
+export function blankUser(id, name) {
+  return {
+    id, name, initial: (name || '?').trim().charAt(0).toUpperCase() || '?', builtin: false, mail: '',
+    places: [], house: null, others: [],
+    settings: { summary: true, quiet: true, lockNames: false, shareFree: false, shareShelf: false },
+    usual: null, shop: [], suggest: ['Milk 2 L', 'Eggs', 'Bread'], overlaps: [],
+    seed: [], photo: null, receipt: null, email: null, barcode: null,
+  };
+}
 
 // Shelves of a cold place, top to bottom, as drawn on the open fridge (boards 01 and 02).
 export function shelvesOf(place, persona) {

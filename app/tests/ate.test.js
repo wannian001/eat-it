@@ -3,15 +3,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 
-import { PERSONAS } from '../js/seed.js';
+import { BUILTIN } from '../js/seed.js';
 import { openStore, memoryAdapter } from '../js/store.js';
 import { countOf, lotsOf } from '../js/state.js';
 import { understand } from '../js/ai.js';
 import { questionsFor, ateResult } from '../js/views/ate.js';
 
 test("John's line asks only about the curry, then applies the answer", async () => {
-  const store = await openStore(PERSONAS.john, memoryAdapter());
-  const { items } = await understand(PERSONAS.john.said, [], { endpoint: null });
+  const store = await openStore({ ...BUILTIN.john, today: '2026-10-10' }, memoryAdapter());
+  const { items } = await understand('I cooked one bag of beef with two tomatoes, and had some of the curry.', [], { endpoint: null });
   const qs = questionsFor(store, items);
   assert.deepEqual(qs.map((q) => q.food), ['curry']);
   const { event, rows } = ateResult(store, items, { curry: 'none' });
@@ -23,8 +23,8 @@ test("John's line asks only about the curry, then applies the answer", async () 
 });
 
 test("May's line asks about spinach and mushrooms; 'a little' keeps them, marked low", async () => {
-  const store = await openStore(PERSONAS.may, memoryAdapter());
-  const { items } = await understand(PERSONAS.may.said, [], { endpoint: null });
+  const store = await openStore({ ...BUILTIN.may, today: '2026-10-10' }, memoryAdapter());
+  const { items } = await understand('I made a stir fry with two chicken thighs, some spinach and the mushrooms.', [], { endpoint: null });
   assert.deepEqual(questionsFor(store, items).map((q) => q.food), ['spinach', 'mushrooms']);
   const { event } = ateResult(store, items, { spinach: 'little', mushrooms: 'plenty' });
   await store.dispatch(event);
@@ -34,7 +34,7 @@ test("May's line asks about spinach and mushrooms; 'a little' keeps them, marked
 });
 
 test('food you do not have is not asked about', async () => {
-  const store = await openStore(PERSONAS.may, memoryAdapter());
+  const store = await openStore({ ...BUILTIN.may, today: '2026-10-10' }, memoryAdapter());
   const { items } = await understand('I had some of the curry', [], { endpoint: null });
   assert.deepEqual(questionsFor(store, items), []);
 });

@@ -1,26 +1,13 @@
 // Household & settings + account (v0.2 "Sharing & settings" and "Account" on one page),
-// plus who is showing (John / May / You), the widget and lock-screen previews, and demo steps.
-import { PERSONAS, PERSONA_IDS } from '../seed.js';
+// plus the user switcher on the phone and the widget and lock-screen previews.
 import { ICON, placeIcon, wordmark } from '../icons.js';
 import { esc, pageHead, secHead, toggle, aiBadge } from '../ui.js';
 import { phoneTitle } from './parts.js';
+import { userList } from './people.js';
 
 const KIND = { cold: 'Cold (fridge)', frozen: 'Frozen (freezer)', room: 'Room temperature' };
 
 const setRow = (icon, title, sub, right) => `<li><span class="row-ic">${ICON[icon]({ size: 20 })}</span><span class="r-main"><b>${title}</b><small>${sub}</small></span>${right}</li>`;
-
-export function peopleSwitch(app) {
-  const p = app.store.persona;
-  return `<div class="me-people" role="radiogroup" aria-label="Whose home">
-    ${PERSONA_IDS.map((id) => `<button class="person${id === p.id ? ' on' : ''}" role="radio" aria-checked="${id === p.id}" data-act="person" data-arg="${id}"><span class="avatar av-0">${esc(PERSONAS[id].initial)}</span><span><b>${esc(PERSONAS[id].name)}</b><small>${id === 'me' ? 'Your own data' : 'Demo'}</small></span></button>`).join('')}
-  </div>`;
-}
-
-export function scenesHtml(app) {
-  const p = app.store.persona;
-  if (!p.scenes?.length) return '';
-  return `<ol class="scenes">${p.scenes.map((sc, i) => `<li><button class="scene${app.ui.scene === i ? ' on' : ''}" data-act="scene" data-arg="${i}"><span class="sc-n">${i + 1}</span><span><b>${esc(sc.t)}</b><small>${esc(sc.d)}</small></span></button></li>`).join('')}</ol>`;
-}
 
 export function householdPage(app) {
   const { store, ui } = app;
@@ -45,11 +32,13 @@ export function householdPage(app) {
     </ul><p class="flab">Never shown to anyone</p><ul class="never"><li>Your own food</li><li>Who used up shared food</li><li>What you ate or threw out</li></ul></section>
     ${p.shelves ? `<section>${secHead('Fridge shelves')}<div class="card">${p.shelves.map((x) => `<div class="shelf-bar"><span><b>${esc(x.name)}</b><small class="muted">${esc(x.who)}</small></span><div class="bar${x.pct >= 80 ? ' hi' : ''}"><i style="width:${x.pct}%"></i></div><em>about ${x.pct}%</em></div>`).join('')}</div></section>` : ''}` : '';
   const confirmClear = ui.confirm === 'clear'
-    ? `<div class="confirm-box"><p>${p.demo ? 'Reset this demo to how it started?' : 'Clear your fridge, places and settings on this device? This can\'t be undone.'}</p><div class="btn-row"><button class="btn btn-danger sm" data-act="reset">${p.demo ? 'Reset demo' : 'Clear everything'}</button><button class="btn btn-quiet sm" data-act="confirm" data-arg="">Keep it</button></div></div>` : '';
+    ? `<div class="confirm-box"><p>${p.builtin ? `Start ${esc(name)} over with the original fridge, dated from today? Everything recorded since is cleared.` : 'Clear your fridge, places and settings on this device? This can\'t be undone.'}</p><div class="btn-row"><button class="btn btn-danger sm" data-act="reset">${p.builtin ? 'Start over' : 'Clear everything'}</button><button class="btn btn-quiet sm" data-act="confirm" data-arg="">Keep it</button></div></div>`
+    : ui.confirm === 'remove'
+      ? `<div class="confirm-box"><p>Remove ${esc(name)} and everything they recorded from this device?</p><div class="btn-row"><button class="btn btn-danger sm" data-act="user-remove">Remove user</button><button class="btn btn-quiet sm" data-act="confirm" data-arg="">Keep</button></div></div>` : '';
   return `<div class="page household">
     ${phoneTitle(app, 'Household')}
     <div class="desk-only">${pageHead('Household & settings', `${esc(name)}'s household`, esc(s.house?.name || 'Lives alone'))}</div>
-    <section class="phone-only">${peopleSwitch(app)}</section>
+    <section class="phone-only">${userList(app)}</section>
     <div class="cols2">
       <div class="stack">
         <section>${secHead('Household')}${house}</section>
@@ -67,10 +56,10 @@ export function householdPage(app) {
         <section>${secHead('Supermarket account')}<div class="card conn"><span class="row-ic">${ICON.store({ size: 20 })}</span><div>${s.links.account ? `<p class="card-t">Linked</p><p class="muted">Eat It! reads product names, amounts and purchase dates. Nothing else.</p><div class="btn-row"><button class="btn btn-secondary sm" data-act="link" data-arg="account|off">Unlink</button></div>` : `<p class="card-t">Not linked</p><p class="muted">Link it to add online orders without typing.</p><div class="btn-row"><button class="btn btn-secondary sm" data-act="method" data-arg="account">Link an account</button></div>`}</div></div></section>
         <section>${secHead('Outside the app')}<div class="btn-row"><button class="btn btn-secondary" data-act="go" data-arg="widgets">${ICON.grid({ size: 18 })}Widgets</button><button class="btn btn-secondary" data-act="go" data-arg="lock">${ICON.phone({ size: 18 })}Lock screen</button></div></section>
         <section>${secHead('Your data')}<ul class="set">
-          ${p.demo ? '' : setRow('download', 'Download a copy', 'Everything you recorded, as one file.', '<button class="chip-btn" data-act="export">Download</button>')}
-          ${setRow('undo', p.demo ? 'Reset the demo' : 'Clear everything on this device', p.demo ? 'Back to how the demo started.' : 'Your food, places and settings.', `<button class="chip-btn" data-act="confirm" data-arg="clear">${p.demo ? 'Reset' : 'Clear'}</button>`)}
+          ${setRow('download', 'Download a copy', 'Everything you recorded, as one file.', '<button class="chip-btn" data-act="export">Download</button>')}
+          ${setRow('undo', p.builtin ? 'Start over' : 'Clear everything on this device', p.builtin ? 'Back to the original fridge, dated from today.' : 'Your food, places and settings.', `<button class="chip-btn" data-act="confirm" data-arg="clear">${p.builtin ? 'Start over' : 'Clear'}</button>`)}
+          ${p.builtin ? '' : setRow('user', 'Remove this user', 'Takes them off this device.', '<button class="chip-btn" data-act="confirm" data-arg="remove">Remove</button>')}
         </ul>${confirmClear}${store.error ? `<p class="err">Not saved: ${esc(store.error.message)}</p>` : ''}</section>
-        ${p.scenes?.length ? `<section class="phone-only">${secHead('Demo steps')}${scenesHtml(app)}</section>` : ''}
         <p class="phone-only brand-foot">${wordmark('sm')}</p>
       </div>
     </div>

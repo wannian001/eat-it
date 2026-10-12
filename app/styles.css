@@ -90,7 +90,6 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .seg.small button { min-height: 36px; padding: 0 14px; font-size: 13px; }
 .seg[role=tablist] { flex-wrap: wrap; border-radius: 18px; }
 .seg[role=tablist] button.on { background: var(--white); box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 15%, transparent); }
-.scene-bar { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 8px 16px; background: var(--amber-soft); color: var(--amber-text); font: 700 12px var(--font-body); }
 .toast {
   position: fixed; z-index: 30; left: 50%; bottom: calc(140px + env(safe-area-inset-bottom)); transform: translateX(-50%);
   display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 32px);
@@ -402,6 +401,26 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .mic.stop { width: 66px; height: 66px; box-shadow: 0 0 0 8px color-mix(in srgb, var(--sprout) 22%, transparent); }
 .ate-note { color: var(--stone); text-align: center; max-width: 28ch; }
 .ate-hint { color: var(--stone); text-align: center; max-width: 30ch; margin-top: -18px; }
+.ate-type { display: flex; gap: 8px; width: 100%; max-width: 340px; }
+.ate-type input { flex: 1; min-width: 0; }
+
+/* ---------- users ---------- */
+.ob-card.wide { max-width: 640px; }
+.user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 18px; }
+.user-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 12px; border: 1.5px solid var(--line); border-radius: 22px; background: var(--white); text-align: center; }
+.user-card b { font: 800 18px var(--font-title); }
+.user-card small { color: var(--stone); font-size: 12px; }
+.user-card:hover { border-color: var(--leaf-deep); background: var(--wash); }
+.user-card.add { border-style: dashed; }
+.add-av { background: var(--mist); color: var(--stone); }
+.user-list { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1.5px solid var(--line); border-radius: 18px; background: var(--white); }
+.user-list.compact { box-shadow: var(--shadow); }
+.user-row { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 8px; border: 0; border-radius: 12px; background: none; text-align: left; }
+.user-row:hover { background: var(--mist); }
+.user-row.on { background: var(--leaf-soft); }
+.user-row.quiet { color: var(--stone); }
+.ur-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ur-main small { color: var(--stone); font-size: 12px; }
 .thinking { display: flex; align-items: center; gap: 4px; color: var(--stone); font: 700 14px var(--font-body); animation: breathe 1.2s ease-in-out infinite alternate; }
 @keyframes breathe { from { opacity: .45; } }
 .ask-step { padding: 6px 12px; border-radius: 999px; background: var(--white); font: 800 13px var(--font-title); }
@@ -489,17 +508,6 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .profile .fld { flex: 1; margin: 0; }
 .confirm-box { margin-top: 12px; padding: 12px; border-radius: 14px; background: var(--tomato-soft); font-size: 14px; }
 .confirm-box select { min-height: 36px; margin: 0 4px; }
-.me-people { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.person { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; min-height: 76px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--white); font: 700 13px var(--font-body); text-align: center; }
-.person span { display: flex; flex-direction: column; }
-.person small { font: 600 11px var(--font-body); color: var(--stone); }
-.person.on { border-color: var(--leaf-deep); background: var(--leaf-soft); }
-.scenes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.scene { width: 100%; display: flex; gap: 10px; align-items: flex-start; padding: 10px; text-align: left; border: 1.5px solid var(--line); border-radius: 14px; background: var(--white); }
-.scene.on { border-color: var(--amber); background: var(--amber-soft); }
-.scene b { display: block; font-size: 13px; }
-.scene small { color: var(--stone); font-size: 12px; }
-.sc-n { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--leaf); font: 800 12px var(--font-title); }
 .brand-foot { display: flex; justify-content: center; padding: 10px 0; }
 
 /* ---------- forms ---------- */
@@ -672,18 +680,11 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
   .nav-item.on svg { color: var(--leaf-deep); }
   .side-sub { padding-top: 10px; border-top: 1px solid var(--line); }
   .side-bottom { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
-  .side-me { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 14px; background: var(--mist); }
-  .side-me span:last-child { display: flex; flex-direction: column; min-width: 0; }
+  .side-me { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px 8px 8px; border: 0; border-radius: 14px; background: var(--mist); text-align: left; color: var(--ink); }
+  .side-me:hover { background: var(--leaf-soft); }
+  .side-me > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .side-me > svg { color: var(--stone); }
   .side-me small { color: var(--stone); font-size: 12px; }
-  .side .me-people { gap: 4px; }
-  .side .person { min-height: 0; padding: 6px 2px; border-radius: 12px; font-size: 12px; }
-  .side .person .avatar { width: 26px; height: 26px; font-size: 11px; }
-  .side .person small { display: none; }
-  .side-demo { padding: 10px; border-radius: 14px; background: var(--amber-soft); font-size: 13px; }
-  .side-demo summary { cursor: pointer; font-weight: 800; color: var(--amber-text); }
-  .side-demo .scenes { margin-top: 8px; }
-  .side-demo .scene { padding: 8px; }
-  .side-demo .scene small { display: none; }
   .main { min-width: 0; padding: 32px 40px 48px; }
   .shell.full .main, .shell.no-tabs .main { padding: 32px 40px 48px; height: auto; }
   .page { max-width: 1160px; margin: 0 auto; padding: 0; }
@@ -694,7 +695,6 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
   .pill-bar, .tabs { display: none; }
   .toast { bottom: 28px; left: calc(50% + var(--side) / 2); }
   .shell.no-tabs .toast { bottom: 28px; }
-  .scene-bar { margin: -32px -40px 24px; padding: 10px 40px; }
   .eatfirst, .fridge, .cab, .viz .fridge, .viz .cab, .list, .viz-h, .legend, .ftable { margin-left: 0; margin-right: 0; }
   .list { padding: 0; }
   .fridge { padding: 9px; gap: 9px; border-radius: 32px; }
