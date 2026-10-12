@@ -6,7 +6,7 @@ import http from 'node:http';
 import { dateTag, urgency, addDays, daysBetween } from '../js/dates.js';
 import { parseAte } from '../js/parse.js';
 import { matchFood } from '../js/foods.js';
-import { replay, eatFirst, countOf, nudge, oldestFrozen, bagNumber, lastSplit, modeOf } from '../js/state.js';
+import { replay, eatFirst, countOf, nudge, oldestFrozen, bagNumber, lastSplit, modeOf, mealAnswer } from '../js/state.js';
 import { weekDays } from '../js/views/week.js';
 import { BUILTIN, blankUser } from '../js/seed.js';
 import { shiftDates } from '../js/users.js';
@@ -190,4 +190,15 @@ test("built-in users start on the day they are first opened", () => {
   assert.equal(nudge(s, '2026-10-12')?.food, 'beef');
   assert.equal(shiftDates('not a date', 3), 'not a date');
   assert.equal(shiftDates({ on: '2026-10-31' }, 1).on, '2026-11-01');
+});
+
+test('"Ate at home today?" has three states and can be taken back', () => {
+  assert.equal(mealAnswer(john(), TODAY), null);
+  assert.equal(mealAnswer(john(ev('plan', { day: TODAY, mode: 'cook' })), TODAY), 'home');
+  const out = john(ev('plan', { day: TODAY, mode: 'out' }));
+  assert.equal(mealAnswer(out, TODAY), 'out');
+  assert.equal(nudge(out, TODAY), null);
+  const back = john(ev('plan', { day: TODAY, mode: 'out' }), ev('plan', { day: TODAY, mode: 'none' }));
+  assert.equal(mealAnswer(back, TODAY), null);
+  assert.ok(nudge(back, TODAY));
 });

@@ -3,7 +3,7 @@
 
 import { spotFor } from './seed.js';
 import { userProfile, currentUser, signIn, signOut, addUser, renameUser, removeUser, restartUser } from './users.js';
-import { addDays, daysBetween } from './dates.js';
+import { addDays, daysBetween, weekday } from './dates.js';
 import { CONFIG } from './config.js';
 import { openStore, localAdapter, httpAdapter, prefs } from './store.js';
 import { matchFood, customId, food, foodName, guessDays, defaultQty, shortName } from './foods.js';
@@ -32,7 +32,7 @@ const NAV = [['home', 'Home', 'home'], ['food', 'Food at home', 'fridge'], ['wee
 const TABS = [['home', 'Home', 'fridge'], ['food', 'Food', 'list'], ['week', 'Week', 'plan'], ['shop', 'Shop', 'cart'], ['settings', 'Me', 'user']];
 
 const freshAdd = (over = {}) => ({ mode: 'photo', picks: [], scanning: false, src: 'picks', img: null, lines: [], edit: null, editQty: null, ...over });
-const freshAte = () => ({ phase: 'idle', text: '', items: [], questions: [], answers: {}, step: 0, result: null });
+const freshAte = (day = null) => ({ phase: 'idle', day, text: '', items: [], questions: [], answers: {}, step: 0, result: null });
 const freshUi = (keep = {}) => ({
   view: prefs.get('view', 'picture'), sheet: null, add: freshAdd(), ate: freshAte(),
   food: { place: null, q: '', own: 'all', view: 'picture' }, toast: null, shopAlert: null, flash: false,
@@ -103,16 +103,18 @@ function routeFromHash() {
 }
 
 function go(route) {
-  const target = route === 'home' ? '#/' : `#/${route}`;
-  if (location.hash === target || (route === 'home' && (!location.hash || location.hash === '#'))) { onRoute(); return; }
-  location.hash = target;
+  // Plain "#week" (old "#/week" links still work), so the address survives hosts that only keep
+  // simple anchors, like the online demo.
+  const target = route === 'home' ? '' : route;
+  if (location.hash.replace(/^#\/?/, '') === target) { onRoute(); return; }
+  location.hash = target ? `#${target}` : '#';
 }
 
 function onRoute() {
   const r = routeFromHash();
   if (r !== 'ate') stopVoice();
   if (r === 'add' && !['scan', 'review', 'ways'].includes(app.route)) app.ui.add = freshAdd();
-  if (r === 'ate' && app.route !== 'ate') app.ui.ate = freshAte();
+  if (r === 'ate' && app.route !== 'ate') { app.ui.ate = freshAte(app.ui.ateDay || null); app.ui.ateDay = null; }
   if (r !== app.route) { app.ui.confirm = null; app.ui.userMenu = false; }
   if (r === 'lock' && app.route !== 'lock') app.ui.lockDismissed = false;
   app.route = r;
@@ -164,14 +166,14 @@ async function finishVoice() {
   a.answers = {};
   a.step = 0;
   if (a.questions.length) { a.phase = 'ask'; render(); return; }
-  a.result = ateResult(app.store, items);
+  a.result = ateResult(app.store, items, {}, a.day);
   a.phase = 'done';
   render();
 }
 
 function listen() {
   stopVoice();
-  app.ui.ate = { ...freshAte(), phase: 'listening' };
+  app.ui.ate = { ...freshAte(app.ui.ate.day), phase: 'listening' };
   render();
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); return; }
@@ -281,12 +283,25 @@ const ACT = {
     const e = await dispatch({ type: 'toss', lot: id });
     toast(`${name} removed.`, e.id);
   },
-  async 'out-day'(day) {
-    const on = modeOf(app.store.state, day) !== 'out';
-    const e = await dispatch({ type: 'plan', day, mode: on ? 'out' : 'cook' });
-    toast(on ? `${day === app.store.today ? 'Tonight' : 'That night'}: eating out. Reminders move to the next day.` : 'Back to eating at home.', e.id);
+  // Record what was used on a given day (today or earlier) by voice.
+  'ate-for'(day) { app.ui.ateDay = day === app.store.today ? null : day; app.ui.sheet = null; go('ate'); },
+  // Open or close a day card in the week calendar.
+  day(d) { app.ui.weekOpen = app.ui.weekOpen === d ? null : d; render(); },
+  // "Ate at home that day?": home asks whether to record now, skip = "Not now", out = ate out,
+  // none takes the answer back.
+  async meal(arg) {
+    const [day, ans] = split(arg);
+    const mode = ans === 'home' ? 'cook' : ans === 'out' ? 'out' : 'none';
+    const e = await dispatch({ type: 'plan', day, mode: ans === 'skip' ? 'cook' : mode, skip: ans === 'skip' });
+    if (ans === 'out') toast(day > app.store.today ? `Eating out on ${weekday(day)}.` : 'Ate out: nothing to log.', e.id);
   },
-  out() { return ACT['out-day'](app.store.today); },
+  // The "Out tonight" widget (board 05).
+  async out() {
+    const today = app.store.today;
+    const on = modeOf(app.store.state, today) !== 'out';
+    const e = await dispatch({ type: 'plan', day: today, mode: on ? 'out' : 'none' });
+    toast(on ? 'Eating out tonight. Reminders move to tomorrow.' : 'Back to eating at home.', e.id);
+  },
   'week-move'(n) { app.ui.weekOffset = Number(n) === 0 ? 0 : (app.ui.weekOffset || 0) + Number(n); render(); },
   async qty(arg) {
     const [lot, n] = split(arg);
@@ -440,14 +455,14 @@ const ACT = {
     const text = val('ate-text').trim();
     if (!text) { document.getElementById('ate-text')?.focus(); return; }
     stopVoice();
-    app.ui.ate = { ...freshAte(), text };
+    app.ui.ate = { ...freshAte(app.ui.ate.day), text };
     finishVoice();
   },
   'ate-answer'(v) {
     const a = app.ui.ate;
     a.answers[a.questions[a.step].food] = v;
     if (a.step < a.questions.length - 1) a.step += 1;
-    else { a.result = ateResult(app.store, a.items, a.answers); a.phase = 'done'; }
+    else { a.result = ateResult(app.store, a.items, a.answers, a.day); a.phase = 'done'; }
     render();
   },
   'ate-back'() {
@@ -456,8 +471,11 @@ const ACT = {
   },
   async 'ate-done'() {
     const ev = app.ui.ate.result?.event;
+    const past = app.ui.ate.day && app.ui.ate.day !== app.store.today ? app.ui.ate.day : null;
     app.ui.ate = freshAte();
-    go('home');
+    // An earlier day was filled in from the calendar: go back to it, opened, to see what was logged.
+    if (past) app.ui.weekOpen = past;
+    go(past ? 'week' : 'home');
     if (ev) { const e = await dispatch(ev); toast('Updated your fridge.', e.id); }
   },
 
@@ -480,7 +498,6 @@ const ACT = {
     app.ui.shopAlert = null;
     if (a?.add) addShop(a.add, a.own); else render();
   },
-  'shop-together'(arg) { const [who, when] = split(arg); toast(`Suggested ${when} to ${who}.`); render(); },
 
   set(key) { dispatch({ type: 'set', key, value: !app.store.state.settings[key] }); },
   confirm(what) { app.ui.confirm = what || null; render(); },

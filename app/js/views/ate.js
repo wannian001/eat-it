@@ -3,6 +3,7 @@
 // -> "Got it" with what comes out of the fridge -> Done.
 
 import { food, foodName, shortName } from '../foods.js';
+import { longDay } from '../dates.js';
 import { countOf, frozenLots, lotsOf } from '../state.js';
 import { parseAte } from '../parse.js';
 import { ICON } from '../icons.js';
@@ -33,9 +34,10 @@ export function questionsFor(store, items) {
 }
 
 // The "ate" event and the summary rows, worked out on a copy of the fridge so nothing changes until Done.
-export function ateResult(store, items, answers = {}) {
+export function ateResult(store, items, answers = {}, day = null) {
   const event = store.make({
     type: 'ate',
+    day: day || store.today,
     items: items.map(({ food, qty, unit, part, exact }) => (answers[food] ? { food, left: answers[food] } : { food, qty, unit, part: part || !exact })),
   });
   const after = store.preview(event);
@@ -70,7 +72,7 @@ function inner(app) {
       <main class="scroll ate-body">
         <p class="ask-kicker">${aiBadge}One quick question</p>
         <span class="ask-pic">${pic(q.food, { bag: q.lot?.bag, size: 84, lot: q.lot })}</span>
-        <h1 class="display left">After today, ${are ? 'are' : 'is'} there any ${esc(name)} left?</h1>
+        <h1 class="display left">After ${a.day ? 'that' : 'today'}, ${are ? 'are' : 'is'} there any ${esc(name)} left?</h1>
         <p class="muted">How much?</p>
         <div class="ask-opts" role="group" aria-label="How much ${esc(name)} is left">
           ${Object.entries(LEFT).map(([k, t]) => `<button class="ask-opt${a.answers[q.food] === k ? ' on' : ''}" data-act="ate-answer" data-arg="${k}">${level(LEVEL[k])}<span>${t}</span></button>`).join('')}
@@ -117,7 +119,7 @@ function inner(app) {
   return `<div class="screen ate">
     <header class="cam-top">${close}</header>
     <main class="scroll ate-body center">
-      <h1 class="display">What did you<br>eat today?</h1>
+      <h1 class="display">What did you<br>eat ${a.day ? `on ${esc(longDay(a.day).split(' ')[0])}` : 'today'}?</h1>
       <p class="ate-hint">Tell it like you'd tell a friend: what you cooked and what went in.</p>
       <button class="mic" data-act="listen" aria-label="Start talking">${ICON.mic({ size: 30, stroke: 2.2 })}</button>
       ${note}${typed}

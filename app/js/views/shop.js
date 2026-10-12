@@ -1,5 +1,5 @@
-// Shopping (v0.2): a list shared with housemates, checks before you buy what you already have or
-// can't fit, and when you and a housemate are both free. Optional, like the plan (Brief O1).
+// Shopping list (v0.2): a list shared with housemates, and checks before you buy what you already
+// have or can't fit.
 
 import { food, foodName, matchFood } from '../foods.js';
 import { countOf, lotsOf, firstOfKind, hasFreezer } from '../state.js';
@@ -66,7 +66,6 @@ export function shopPage(app) {
       </div>
       <div class="stack">
         <section>${secHead('Room at home before you buy', '<button class="link" data-act="sheet" data-arg="places">Update</button>')}<div class="card flush">${roomBars(app)}</div></section>
-        ${mates.length ? `<section>${secHead('Shop together?')}<div class="card">${s.settings.shareFree ? `${(p.overlaps || []).map((o) => `<p class="ov"><span>You and <b>${esc(o.who)}</b> are both free <b>${esc(o.when)}</b></span><button class="chip-btn" data-act="shop-together" data-arg="${esc(o.who)}|${esc(o.when)}">Suggest</button></p>`).join('') || '<p class="muted">No shared free time this week.</p>'}<p class="small muted">Only overlaps are shown. Nobody sees your whole week.</p>` : '<p class="muted">You\'ve turned off sharing free times.</p>'}</div></section>` : ''}
       </div>
     </div>
   </div>`;

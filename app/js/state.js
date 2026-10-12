@@ -17,7 +17,8 @@
 //   thaw     { lot, place, spot }                 out of the freezer into the fridge
 //   move     { lot, place, spot }
 // Plan, shopping, home
-//   plan     { day, mode: cook|out }              "Out tonight": eating out that day
+//   plan     { day, mode: cook|out|none, skip? }  "Ate at home that day?" yes = cook, no = out, none = unanswered;
+//                                                  skip = said yes but chose not to record what was used
 //   qty      { lot, qty }                         set how many are left (0 = gone)
 //   snooze   { until }
 //   shop.add { id, name, own, who } · shop.done { id } · shop.claim { id, who }
@@ -41,7 +42,7 @@ export function emptyState(persona) {
     places: clone(persona.places) || [],
     plan: {}, snoozeUntil: null, thawedOn: null,
     shop: clone(persona.shop) || [],
-    settings: { summary: true, quiet: true, lockNames: false, shareFree: false, shareShelf: false, ...clone(persona.settings) },
+    settings: { summary: true, quiet: true, lockNames: false, shareShelf: false, ...clone(persona.settings) },
     profile: { name: persona.name, mail: persona.mail || '' },
     house: clone(persona.house) || null,
     links: { email: false, senders: [], account: false },
@@ -99,8 +100,8 @@ export function apply(s, e) {
       s.thawedOn = e.day;
       return;
     case 'move': if (lot && placeOf(s, e.place)) Object.assign(lot, { place: e.place, spot: e.spot ?? null }); return;
-    case 'plan': s.plan[e.day] = { mode: e.mode === 'cook' ? 'cook' : 'out' }; return;
-    case 'out': s.plan[e.day] = { mode: e.on ? 'out' : 'cook' }; return;
+    case 'plan': if (e.mode === 'none') delete s.plan[e.day]; else s.plan[e.day] = { mode: e.mode === 'cook' ? 'cook' : 'out', skip: !!e.skip }; return;
+    case 'out': if (e.on) s.plan[e.day] = { mode: 'out' }; else delete s.plan[e.day]; return;
     case 'snooze': s.snoozeUntil = e.until; return;
     case 'shop.add': s.shop.push({ id: e.id, name: e.name, own: e.own || 'mine', who: e.who ?? null, done: false }); return;
     case 'shop.done': { const it = s.shop.find((x) => x.id === e.id); if (it) it.done = !it.done; return; }
@@ -278,6 +279,9 @@ export function usual(s, n = 4, fallback = ['milk', 'spinach', 'eggs', 'bread'])
 }
 
 export const modeOf = (s, day) => s.plan[day]?.mode || 'cook';
+// The answer to "Ate at home today?": 'home', 'out', or null if not answered yet.
+export const mealAnswer = (s, day) => ({ cook: 'home', out: 'out' }[s.plan[day]?.mode] || null);
+export const mealSkipped = (s, day) => !!s.plan[day]?.skip;
 
 // Should the oldest frozen bag nudge the user today? At most one nudge a day (Brief C3), and none
 // after a bag was thawed today, on a day you're eating out, or while snoozed.

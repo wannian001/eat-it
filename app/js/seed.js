@@ -27,7 +27,7 @@ export const BUILTIN = {
       { id: 'pantry', name: 'Cupboard', kind: 'room', sub: 'all yours', full: 45 },
     ],
     house: null, others: [],
-    settings: { summary: true, quiet: true, lockNames: true, shareFree: false, shareShelf: false },
+    settings: { summary: true, quiet: true, lockNames: true, shareShelf: false },
     usual: ['milk', 'spinach', 'eggs', 'bread'],
     shop: [
       { id: 's1', name: 'Eggs', own: 'mine', who: 'John' },
@@ -35,7 +35,6 @@ export const BUILTIN = {
       { id: 's3', name: 'Oats', own: 'mine', who: 'John' },
     ],
     suggest: ['Beef mince 2 kg, bulk deal', 'Broccoli', 'Milk 2 L'],
-    overlaps: [],
     seed: [
       put('john-0912', '2026-09-12', [{ food: 'beef', qty: 1000, unit: 'g', place: 'freezer', bags: 5 }]),
       put('john-0926', '2026-09-26', [{ food: 'dumplings', qty: 1, unit: 'bag', place: 'freezer', amount: 'Half' }]),
@@ -101,7 +100,7 @@ export const BUILTIN = {
     // Housemates' food only ever shows as a number (Brief §4.4).
     others: [{ who: 'Lily', place: 'fridge', n: 2 }, { who: 'Sam', place: 'fridge', n: 1 }, { who: 'Lily', place: 'pantry', n: 6 }, { who: 'Sam', place: 'pantry', n: 3 }],
     shelves: [{ name: 'Top shelf', who: 'Lily & Sam', pct: 70 }, { name: 'Shared shelf', who: 'Everyone', pct: 60 }, { name: 'Your shelf', who: 'May', pct: 85 }, { name: 'Crisper', who: 'May', pct: 50 }],
-    settings: { summary: true, quiet: true, lockNames: true, shareFree: true, shareShelf: true },
+    settings: { summary: true, quiet: true, lockNames: true, shareShelf: true },
     usual: ['milk', 'strawberry', 'yoghurt', 'bread'],
     shop: [
       { id: 's1', name: 'Rice 5 kg', own: 'shared', who: null, note: 'Shared rice is running low' },
@@ -110,7 +109,6 @@ export const BUILTIN = {
       { id: 's4', name: 'Cooking oil', own: 'shared', who: 'Sam' },
     ],
     suggest: ['Salad kit, family size', 'Milk 2 L', 'Eggs'],
-    overlaps: [{ who: 'Lily', when: 'Thu 4–6 pm' }, { who: 'Sam', when: 'Sat 10–11 am' }],
     seed: [
       put('may-1006', '2026-10-06', [
         { food: 'milk', qty: 2, unit: 'L', place: 'fridge', spot: 'shared', owner: 'shared', date: useBy('2026-10-14'), amount: 'Half' },
@@ -158,8 +156,8 @@ export function blankUser(id, name) {
   return {
     id, name, initial: (name || '?').trim().charAt(0).toUpperCase() || '?', builtin: false, mail: '',
     places: [], house: null, others: [],
-    settings: { summary: true, quiet: true, lockNames: false, shareFree: false, shareShelf: false },
-    usual: null, shop: [], suggest: ['Milk 2 L', 'Eggs', 'Bread'], overlaps: [],
+    settings: { summary: true, quiet: true, lockNames: false, shareShelf: false },
+    usual: null, shop: [], suggest: ['Milk 2 L', 'Eggs', 'Bread'],
     seed: [], photo: null, receipt: null, email: null, barcode: null,
   };
 }

@@ -25,10 +25,9 @@ export function householdPage(app) {
     : `<div class="card"><p class="card-t">Just you</p><p class="muted">If you share a kitchen, housemates can see shared food and a shared list. Your own food stays private.</p>
         <div class="btn-row wrap"><button class="btn btn-primary sm" data-act="house" data-arg="create">Start a household</button><button class="btn btn-secondary sm" data-act="confirm" data-arg="join">Join with a code</button></div>
         ${ui.confirm === 'join' ? `<div class="addrow"><input id="join-code" type="text" placeholder="SL-4821" autocomplete="off" aria-label="Invite code"><button class="btn btn-primary sm" data-act="house" data-arg="join">Join</button></div>` : ''}</div>`;
-  const sharing = mates.length ? `<section>${secHead(`What ${esc(mates.map((m) => m.name).join(' and '))} can see`)}<ul class="set">
+  const sharing = mates.length ? `<section>${secHead('What your housemates can see')}<ul class="set">
       ${setRow('fridge', 'Shared food and how much is left', 'Needed for a shared fridge, so it\'s always on.', toggle('noop', '', true, 'Shared food', true))}
       ${setRow('cart', 'The shared list and who\'s getting what', 'Always on.', toggle('noop', '', true, 'Shared list', true))}
-      ${setRow('clock', 'When I\'m free to shop', 'Only the times that overlap with theirs.', toggle('set', 'shareFree', st.shareFree, 'Share when I am free'))}
       ${setRow('bars', 'How full my shelf is', 'Helps everyone see if there\'s room before a big shop.', toggle('set', 'shareShelf', st.shareShelf, 'Share how full my shelf is'))}
     </ul><p class="flab">Never shown to anyone</p><ul class="never"><li>Your own food</li><li>Who used up shared food</li><li>What you ate or threw out</li></ul></section>
     ${p.shelves ? `<section>${secHead('Fridge shelves')}<div class="card">${p.shelves.map((x) => `<div class="shelf-bar"><span><b>${esc(x.name)}</b><small class="muted">${esc(x.who)}</small></span><div class="bar${x.pct >= 80 ? ' hi' : ''}"><i style="width:${x.pct}%"></i></div><em>about ${x.pct}%</em></div>`).join('')}</div></section>` : ''}` : '';
