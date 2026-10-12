@@ -28,7 +28,7 @@ const ROUTES = { home: homePage, food: foodPage, add: addPage, ways: waysPage, s
 const FULL = new Set(['add', 'scan', 'ate', 'widgets', 'lock']); // phone: no tab bar
 const NO_TABS = new Set([...FULL, 'review', 'ways']);
 const SHEETS = { lot: lotSheet, places: placesSheet, measure: measureSheet, type: typeSheet, consent: consentSheet, email: emailSheet, pick: pickSheet };
-const NAV = [['home', 'Home', 'home'], ['food', 'Food at home', 'fridge'], ['week', 'Week calendar', 'plan'], ['shop', 'Shopping', 'cart'], ['settings', 'Household', 'settings']];
+const NAV = [['home', 'Home', 'home'], ['food', 'Food at home', 'fridge'], ['week', 'Week calendar', 'plan'], ['shop', 'Shopping list', 'cart'], ['settings', 'Household', 'settings']];
 const TABS = [['home', 'Home', 'fridge'], ['food', 'Food', 'list'], ['week', 'Week', 'plan'], ['shop', 'Shop', 'cart'], ['settings', 'Me', 'user']];
 
 const freshAdd = (over = {}) => ({ mode: 'photo', picks: [], scanning: false, src: 'picks', img: null, lines: [], edit: null, editQty: null, ...over });
@@ -50,7 +50,6 @@ function shell(content) {
     <div class="side-brand">${appIcon({ size: 32, badge: false })}${wordmark('sm')}</div>
     <div class="side-acts"><button class="btn btn-primary" data-act="go" data-arg="add">${ICON.plus({ size: 18, stroke: 2.4 })}Add food</button><button class="btn btn-secondary" data-act="go" data-arg="ate">${ICON.minus({ size: 18, stroke: 2.4 })}I ate</button></div>
     <nav class="side-nav">${NAV.map(([r, t, ic]) => `<button class="nav-item${route === r || (r === 'home' && route === 'home') ? ' on' : ''}" data-act="go" data-arg="${r}"${route === r ? ' aria-current="page"' : ''}>${ICON[ic]({ size: 20 })}${t}</button>`).join('')}</nav>
-    <div class="side-sub"><button class="nav-item sm${route === 'widgets' ? ' on' : ''}" data-act="go" data-arg="widgets">${ICON.grid({ size: 18 })}Widgets</button><button class="nav-item sm${route === 'lock' ? ' on' : ''}" data-act="go" data-arg="lock">${ICON.phone({ size: 18 })}Lock screen</button></div>
     <div class="side-bottom">
       ${ui.userMenu ? userList(app, { compact: true }) : ''}
       <button class="side-me" data-act="user-menu" aria-expanded="${!!ui.userMenu}" aria-label="Signed in as ${esc(name)}. Switch user"><span class="avatar av-0">${esc(name[0])}</span><span><b>${esc(name)}</b><small>${esc(s.house?.name || 'Lives alone')}</small></span>${ICON.settings({ size: 16 })}</button>

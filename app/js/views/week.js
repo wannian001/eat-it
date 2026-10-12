@@ -75,15 +75,15 @@ function dayCard(app, d) {
   const today = app.store.today;
   const s = app.store.state;
   const blocks = [];
-  const item = (l) => { const t = dateTag(l.date, today); return `<li><button class="wk-food" data-act="lot" data-arg="${esc(l.id)}">${pic(l.food, { size: 22, lot: l })}<span>${esc(foodName(l.food, 2, l))}</span><small class="d-${t.kind}">${esc(KIND_WORD[l.date.kind] || '')}</small></button></li>`; };
+  const item = (l) => { const t = dateTag(l.date, today); return `<li><button class="wk-food" data-act="lot" data-arg="${esc(l.id)}">${pic(l.food, { size: 26, lot: l })}<span class="wf-text"><b>${esc(foodName(l.food, 2, l))}</b><small class="d-${t.kind}">${esc(KIND_WORD[l.date.kind] || '')}</small></span></button></li>`; };
   if (d.overdue.length) blocks.push(`<div class="block warn"><span class="k">Check today</span><ul>${d.overdue.map(item).join('')}</ul></div>`);
   if (d.due.length) blocks.push(`<div class="block"><span class="k">Eat by</span><ul>${d.due.map(item).join('')}</ul></div>`);
-  if (d.thaw) blocks.push(`<div class="block frost"><span class="k">Freezer</span><p>${esc(shortName(d.thaw.food, d.thaw))}, bag ${bagNumber(s, d.thaw)} · ${frozenWeeks(d.thaw.date.on, today)} weeks</p><button class="chip-btn on" data-act="thaw" data-arg="${esc(d.thaw.id)}">Thaw tonight</button></div>`);
-  else if (d.freezer.length) blocks.push(`<div class="block frost"><span class="k">Freezer</span><ul>${d.freezer.map((l) => `<li>${pic(l.food, { bag: true, size: 22, lot: l })}<span>${esc(shortName(l.food, l))}, bag ${bagNumber(s, l)} turns ${daysBetween(l.date.on, d.date) / 7} weeks</span></li>`).join('')}</ul></div>`);
+  if (d.thaw) blocks.push(`<div class="block frost"><span class="k">Freezer</span><div class="wk-line">${pic(d.thaw.food, { bag: true, size: 26, lot: d.thaw })}<span class="wf-text"><b>${esc(shortName(d.thaw.food, d.thaw))}, bag ${bagNumber(s, d.thaw)}</b><small>${frozenWeeks(d.thaw.date.on, today)} weeks frozen</small></span></div><button class="chip-btn on" data-act="thaw" data-arg="${esc(d.thaw.id)}">Thaw tonight</button></div>`);
+  else if (d.freezer.length) blocks.push(`<div class="block frost"><span class="k">Freezer</span><ul>${d.freezer.map((l) => `<li class="wk-line">${pic(l.food, { bag: true, size: 26, lot: l })}<span class="wf-text"><b>${esc(shortName(l.food, l))}, bag ${bagNumber(s, l)}</b><small>${daysBetween(l.date.on, d.date) / 7} weeks frozen</small></span></li>`).join('')}</ul></div>`);
   if (!d.past) {
-    blocks.push(`<div class="block out-row"><span class="k">Dinner</span><button class="out-toggle${d.out ? ' on' : ''}" data-act="out-day" data-arg="${d.date}" aria-pressed="${d.out}">${d.out ? `${ICON.fork({ size: 14 })}Eating out` : `${ICON.pan({ size: 14 })}At home`}</button></div>`);
+    blocks.push(`<div class="block"><span class="k">Dinner</span><button class="out-toggle${d.out ? ' on' : ''}" data-act="out-day" data-arg="${d.date}" aria-pressed="${d.out}" aria-label="${d.out ? 'Eating out' : 'At home'}, tap to change">${d.out ? `${ICON.fork({ size: 15 })}Eating out` : `${ICON.home({ size: 15 })}At home`}</button></div>`);
   } else if (d.out) {
-    blocks.push(`<div class="block"><span class="k">Dinner</span><p>${ICON.fork({ size: 14 })}Ate out</p></div>`);
+    blocks.push(`<div class="block"><span class="k">Dinner</span><p>${ICON.fork({ size: 15 })}Ate out</p></div>`);
   }
   if (d.past || d.isToday) {
     blocks.push(`<div class="block"><span class="k">${d.isToday ? 'Eaten so far' : 'Ate & used'}</span>${d.ate.length ? `<ul class="plain">${d.ate.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : '<p class="muted">Nothing recorded</p>'}</div>`);
@@ -107,7 +107,7 @@ export function weekPage(app) {
   const nav = `<div class="wk-nav"><button class="round" data-act="week-move" data-arg="-1" aria-label="Previous week">${ICON.back({ size: 16 })}</button><span>${esc(fmtDay(days[0].date))} – ${esc(fmtDay(end))}</span><button class="round" data-act="week-move" data-arg="1" aria-label="Next week">${ICON.next({ size: 16 })}</button>${off ? '<button class="link" data-act="week-move" data-arg="0">This week</button>' : ''}</div>`;
   return `<div class="page week">
     ${phoneTitle(app, 'Week calendar')}
-    <div class="desk-only">${pageHead('Week calendar', 'Week calendar', 'What to watch for in food each day: what to eat by, which freezer bag is getting old, nights out — and what you actually ate.')}</div>
+    <div class="desk-only">${pageHead(off === 0 ? 'This week' : off === 1 ? 'Next week' : off === -1 ? 'Last week' : off > 0 ? `In ${off} weeks` : `${-off} weeks ago`, 'Week calendar', 'What to watch for in food each day: what to eat by, which freezer bag is getting old, nights out — and what you actually ate.')}</div>
     ${nav}
     <div class="days" tabindex="0" aria-label="Seven days">${days.map((d) => dayCard(app, d)).join('')}</div>
     ${later.length ? `<section>${secHead('Coming up')}<ul class="rows">${later.map((l) => { const t = dateTag(l.date, today); return `<li><button class="row" data-act="lot" data-arg="${esc(l.id)}">${pic(l.food, { size: 32, lot: l })}<span class="r-main"><b>${esc(foodName(l.food, 2, l))}</b><small>${esc(fmtDay(lastGood(l.date)))}</small></span><span class="tag tag-${t.kind}">${esc(`in ${daysBetween(today, lastGood(l.date))} days`)}</span></button></li>`; }).join('')}</ul></section>` : ''}
