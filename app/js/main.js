@@ -49,20 +49,23 @@ function shell(content) {
   const { store, ui, route } = app;
   const s = store.state, p = store.persona;
   const name = s.profile.name || p.name;
+  // Desktop side bar: can be folded to a narrow strip of icons; the logo opens it again.
+  const closed = prefs.get('side', 'open') === 'closed';
+  const tip = (t) => (closed ? ` title="${esc(t)}" aria-label="${esc(t)}"` : '');
   const side = `<aside class="side" aria-label="Main">
-    <div class="side-brand">${appIcon({ size: 32, badge: false })}${wordmark('sm')}</div>
-    <div class="side-acts"><button class="btn btn-primary" data-act="go" data-arg="add">${ICON.plus({ size: 18, stroke: 2.4 })}Add food</button><button class="btn btn-secondary" data-act="go" data-arg="ate">${ICON.minus({ size: 18, stroke: 2.4 })}I ate</button></div>
-    <nav class="side-nav">${NAV.map(([r, t, ic]) => `<button class="nav-item${route === r || (r === 'home' && route === 'home') ? ' on' : ''}" data-act="go" data-arg="${r}"${route === r ? ' aria-current="page"' : ''}>${ICON[ic]({ size: 20 })}${t}</button>`).join('')}</nav>
+    <div class="side-brand"><button class="brand-btn" data-act="side" aria-expanded="${!closed}" aria-label="${closed ? 'Open the menu' : 'Eat It! · fold the menu'}"${closed ? ' title="Open the menu"' : ''}>${appIcon({ size: 32, badge: false })}<span class="lbl">${wordmark('sm')}</span></button>${closed ? '' : `<button class="side-fold" data-act="side" aria-label="Fold the menu" title="Fold the menu">${ICON.back({ size: 16 })}</button>`}</div>
+    <div class="side-acts"><button class="btn btn-primary" data-act="go" data-arg="add"${tip('Add food')}>${ICON.plus({ size: 18, stroke: 2.4 })}<span class="lbl">Add food</span></button><button class="btn btn-secondary" data-act="go" data-arg="ate"${tip('I ate')}>${ICON.minus({ size: 18, stroke: 2.4 })}<span class="lbl">I ate</span></button></div>
+    <nav class="side-nav">${NAV.map(([r, t, ic]) => `<button class="nav-item${route === r ? ' on' : ''}" data-act="go" data-arg="${r}"${route === r ? ' aria-current="page"' : ''}${tip(t)}>${ICON[ic]({ size: 20 })}<span class="lbl">${t}</span></button>`).join('')}</nav>
     <div class="side-bottom">
       ${ui.userMenu ? userList(app, { compact: true }) : ''}
-      <button class="side-me" data-act="user-menu" aria-expanded="${!!ui.userMenu}" aria-label="Signed in as ${esc(name)}. Switch user"><span class="avatar av-0">${esc(name[0])}</span><span><b>${esc(name)}</b><small>${esc(s.house?.name || 'Lives alone')}</small></span>${ICON.settings({ size: 16 })}</button>
+      <button class="side-me" data-act="user-menu" aria-expanded="${!!ui.userMenu}" aria-label="Signed in as ${esc(name)}. Switch user"${closed ? ` title="${esc(name)}"` : ''}><span class="avatar av-0">${esc(name[0])}</span><span class="lbl"><b>${esc(name)}</b><small>${esc(s.house?.name || 'Lives alone')}</small></span>${ICON.settings({ size: 16 })}</button>
     </div>
   </aside>`;
   const tabs = NO_TABS.has(route) ? '' : `<nav class="tabs" aria-label="Main">${TABS.map(([r, t, ic]) => `<button class="tab${route === r ? ' on' : ''}" data-act="go" data-arg="${r}"${route === r ? ' aria-current="page"' : ''}>${ICON[ic]({ size: 22 })}<span>${t}</span></button>`).join('')}</nav>`;
   const pill = route === 'home' || route === 'food'
     ? `<div class="pill-bar"><div class="seg"><button class="seg-primary" data-act="go" data-arg="add">${ICON.plus({ size: 18, stroke: 2.4 })}Add food</button><button class="seg-plain" data-act="go" data-arg="ate">${ICON.minus({ size: 18, stroke: 2.4 })}I ate</button></div></div>` : '';
   const toast = ui.toast ? `<div class="toast" role="status">${esc(ui.toast.msg)}${ui.toast.undo ? `<button data-act="undo" data-arg="${esc(ui.toast.undo)}">Undo</button>` : ''}</div>` : '';
-  return `<div class="shell r-${route}${FULL.has(route) ? ' full' : ''}${NO_TABS.has(route) ? ' no-tabs' : ''}"${app.ui.sheet ? ' inert' : ''}>${side}<main class="main" id="main">${content}</main>${pill}${tabs}${toast}</div>`;
+  return `<div class="shell r-${route}${FULL.has(route) ? ' full' : ''}${NO_TABS.has(route) ? ' no-tabs' : ''}${closed ? ' side-closed' : ''}"${app.ui.sheet ? ' inert' : ''}>${side}<main class="main" id="main">${content}</main>${pill}${tabs}${toast}</div>`;
 }
 
 function render() {
@@ -661,6 +664,7 @@ const ACT = {
   },
 
   // ----- users -----
+  side() { prefs.set('side', prefs.get('side', 'open') === 'closed' ? 'open' : 'closed'); app.ui.userMenu = false; render(); },
   'user-menu'() { app.ui.userMenu = !app.ui.userMenu; render(); },
   async user(id) {
     stopVoice();
