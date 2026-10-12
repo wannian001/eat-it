@@ -102,6 +102,7 @@ function render() {
     if (focus) center(focus);
   }
   if (app.route === 'week') { app.ui.weekJump = false; app.ui.weekFocus = null; }
+  syncCamera();
   document.body.dataset.route = app.route;
   const next = root.querySelector('.main');
   if (next) next.scrollTop = keep;
@@ -138,7 +139,7 @@ function go(route) {
 function onRoute() {
   const r = routeFromHash();
   const prev = app.route;
-  if (r !== prev) lastNav = Date.now();
+  if (prev && r !== prev) lastNav = Date.now();
   if (r !== 'ate') stopVoice();
   if (r === 'add' && !['scan', 'review', 'ways'].includes(app.route)) app.ui.add = freshAdd();
   if (r === 'ate' && app.route !== 'ate') { app.ui.ate = { ...freshAte(app.ui.ateDay || null), from: app.ui.ateFrom || null }; app.ui.ateDay = null; app.ui.ateFrom = null; }
@@ -171,12 +172,83 @@ function toast(msg, undo = null) {
 }
 
 
+// ---------- camera (Add food) ----------
+// The camera page uses the real camera when it can (phones and laptops ask once), so photo, receipt
+// and barcode look real. Reading what's in the picture is still simulated.
+let camStream = null;
+let camState = 'off';   // off | asking | on | denied
+// Only while a camera screen is actually on show (on a computer, Add food opens the list of ways).
+const camOnScreen = () => [...root.querySelectorAll('.screen.cam')].some((el) => el.getClientRects().length);
+const wantCamera = () => !!(app.store && ['add', 'scan'].includes(app.route) && app.store.persona.photo && !app.ui.add.img
+  && navigator.mediaDevices?.getUserMedia && camState !== 'denied' && camOnScreen());
+function stopCamera() {
+  camStream?.getTracks().forEach((t) => t.stop());
+  camStream = null;
+  if (camState === 'on') camState = 'off';
+}
+async function syncCamera() {
+  if (!wantCamera()) { if (camStream) { stopCamera(); app.ui.camLive = false; } return; }
+  if (camState === 'off') {
+    camState = 'asking';
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }, audio: false });
+      camState = 'on';
+    } catch { camState = 'denied'; }
+    if (!wantCamera()) stopCamera();
+    app.ui.camLive = camState === 'on';
+    render();
+    return;
+  }
+  if (camStream) for (const v of root.querySelectorAll('video.cam-feed')) if (v.srcObject !== camStream) { v.srcObject = camStream; v.play?.().catch(() => {}); }
+}
+// The shutter freezes what the camera sees, so the next screens show your own picture.
+function grabFrame() {
+  const v = [...root.querySelectorAll('video.cam-feed')].find((x) => x.getClientRects().length && x.videoWidth);
+  if (!v) return null;
+  const c = document.createElement('canvas');
+  c.width = 720; c.height = Math.round((720 * v.videoHeight) / v.videoWidth);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  try { return c.toDataURL('image/jpeg', 0.8); } catch { return null; }
+}
+
 // ---------- voice ----------
 
-let rec = null;
+// One recognizer for the whole visit, reused. Phones (iOS Safari especially) refuse to start a new
+// one while the last is still winding down, which made voice work once and then stop. So: wait for
+// the old session to end before starting, and never wait forever for the browser to say it ended.
+let rec = null;        // the recognizer
+let recOn = false;     // from start() until the browser says it ended
+let session = null;    // handlers of the listening session that is running now
+let pendingStart = null;
+let stopTimer = null;
+
+const voiceOff = () => { app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); byId('ate-text')?.focus(); };
+
+function recognizer() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  if (!rec) {
+    rec = new SR();
+    rec.lang = 'en-AU';
+    rec.interimResults = true;
+    rec.continuous = true;
+    rec.onstart = () => { recOn = true; };
+    rec.onresult = (e) => session?.onresult(e);
+    rec.onerror = (e) => session?.onerror(e);
+    rec.onend = () => {
+      recOn = false;
+      const next = pendingStart; pendingStart = null;
+      if (next) { next(); return; }
+      session?.onend();
+    };
+  }
+  return rec;
+}
 
 function stopVoice() {
-  if (rec) { rec.onend = null; try { rec.abort(); } catch { /* already stopped */ } rec = null; }
+  session = null;
+  clearTimeout(stopTimer);
+  if (rec && recOn) { try { rec.abort(); } catch { /* already stopped */ } }
 }
 
 // After speaking: let the AI (or the built-in reader) work out the food, then ask about anything
@@ -203,31 +275,50 @@ function listen() {
   stopVoice();
   app.ui.ate = { ...freshAte(app.ui.ate.day), phase: 'listening' };
   render();
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); byId('ate-text')?.focus(); return; }
-  rec = new SR();
-  rec.lang = 'en-AU';
-  rec.interimResults = true;
-  rec.continuous = true;
+  if (!recognizer()) { voiceOff(); return; }
   let finalText = '';
-  rec.onresult = (e) => {
-    let interim = '';
-    for (let k = e.resultIndex; k < e.results.length; k++) {
-      const r = e.results[k];
-      if (r.isFinal) finalText += `${r[0].transcript} `; else interim += r[0].transcript;
-    }
-    app.ui.ate.text = `${finalText}${interim}`.trim();
-    render();
+  const mine = {
+    onresult(e) {
+      let interim = '';
+      for (let k = e.resultIndex; k < e.results.length; k++) {
+        const r = e.results[k];
+        if (r.isFinal) finalText += `${r[0].transcript} `; else interim += r[0].transcript;
+      }
+      app.ui.ate.text = `${finalText}${interim}`.trim();
+      render();
+    },
+    onerror(e) {
+      if (['not-allowed', 'service-not-allowed', 'audio-capture', 'network'].includes(e.error)) { session = null; voiceOff(); }
+    },
+    onend() {
+      if (session !== mine) return;
+      session = null;
+      clearTimeout(stopTimer);
+      if (app.ui.ate.phase === 'listening') finishVoice();
+    },
   };
-  rec.onerror = (e) => {
-    if (['not-allowed', 'service-not-allowed', 'audio-capture', 'network'].includes(e.error)) { stopVoice(); app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); }
+  session = mine;
+  const begin = () => {
+    if (session !== mine) return;
+    try { recognizer().start(); recOn = true; } catch { session = null; voiceOff(); }
   };
-  rec.onend = () => { rec = null; if (app.ui.ate.phase === 'listening') finishVoice(); };
-  try { rec.start(); } catch { rec = null; app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); }
+  if (!recOn) { begin(); return; }
+  // The last session is still ending: start when it has. If the browser never says so, start over
+  // with a fresh recognizer.
+  pendingStart = begin;
+  setTimeout(() => { if (pendingStart === begin) { pendingStart = null; rec = null; recOn = false; begin(); } }, 800);
 }
 
 function stopListening() {
-  if (rec) { rec.stop(); return; }
+  if (session && recOn) {
+    try { rec.stop(); } catch { /* ended already */ }
+    // Some browsers never send "end" after stop: finish anyway.
+    const mine = session;
+    clearTimeout(stopTimer);
+    stopTimer = setTimeout(() => { if (session === mine) { stopVoice(); rec = null; recOn = false; if (app.ui.ate.phase === 'listening') finishVoice(); } }, 1500);
+    return;
+  }
+  session = null;
   finishVoice();
 }
 
@@ -397,7 +488,7 @@ const ACT = {
     render();
   },
   mode(m) { app.ui.add.mode = m; app.ui.add.img = null; render(); },
-  shoot() { startScan(null); },
+  shoot() { startScan(grabFrame()); },
   review(src) {
     app.ui.add = freshAdd({ src, mode: src });
     app.ui.add.lines = buildLines(app, src);
@@ -509,6 +600,7 @@ const ACT = {
     try { for (const k of Object.keys(localStorage)) if (k.startsWith('eatit:')) localStorage.removeItem(k); } catch { /* storage blocked */ }
     location.reload();
   },
+  'guide-done'() { prefs.set(`guide:${app.store.persona.id}`, true); render(); },
   'ate-close'() { go(ateBack()); },
   'ate-back'() {
     const a = app.ui.ate;

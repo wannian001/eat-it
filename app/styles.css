@@ -228,6 +228,14 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .home-grid { display: flex; flex-direction: column; }
 .h-today { padding: 0 16px; margin-top: 4px; }
 .h-empty { margin: 0 16px 14px; }
+.guide { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; background: var(--wash); border-color: transparent; }
+.guide ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.guide li { display: flex; align-items: center; gap: 12px; }
+.guide li > span:last-child { display: flex; flex-direction: column; }
+.guide b { font: 800 15px var(--font-title); }
+.guide small { font-size: 13px; color: var(--stone); }
+.g-ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--leaf); color: var(--ink); flex: none; }
+.guide .btn { align-self: flex-start; }
 .today-card { display: flex; flex-direction: column; gap: 10px; background: var(--wash); border-color: transparent; }
 .today-card .meal.ask { padding: 0; background: none; }
 .thaw-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
@@ -307,6 +315,12 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .cam-count::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--sprout); }
 .cam-view { position: relative; flex: 1; padding: 6px 16px; overflow: hidden; }
 .cam-view.has-photo { background: var(--photo) center / cover no-repeat; }
+.cam-feed { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--ink); }
+.cam-guide { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); border: 3px solid var(--white); border-radius: 18px; box-shadow: 0 0 0 999px color-mix(in srgb, var(--ink) 28%, transparent); pointer-events: none; }
+.cam-guide.g-photo { width: 78%; height: 62%; border-style: dashed; box-shadow: none; }
+.cam-guide.g-receipt { width: 58%; height: 78%; }
+.cam-guide.g-barcode { width: 76%; height: 24%; }
+.cam-feed ~ .scanline { left: 12%; right: 12%; top: 46%; }
 .boxes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px 10px; align-content: start; padding-top: 4px; }
 .box { position: relative; display: grid; place-items: center; height: 86px; border: 2.5px solid var(--leaf); border-radius: 18px; background: color-mix(in srgb, var(--white) 22%, transparent); }
 .box-lg, .box-md { grid-column: span 3; }
@@ -784,6 +798,12 @@ button.day-head { cursor: pointer; }
   .handle { display: none; }
   .onboard { background: var(--mist); }
   @keyframes slide { from { transform: translateX(40px); opacity: 0; } }
+}
+
+@media (min-width: 900px) {
+  .guide { flex-direction: row; align-items: center; gap: 24px; }
+  .guide ul { flex: 1; flex-direction: row; gap: 28px; }
+  .guide .btn { align-self: center; }
 }
 
 @media (min-width: 1500px) {

@@ -129,7 +129,7 @@ function inner(app) {
     <header class="cam-top">${close}</header>
     <main class="scroll ate-body center">
       <h1 class="display">What did you<br>eat ${a.day ? `on ${esc(longDay(a.day).split(' ')[0])}` : 'today'}?</h1>
-      <p class="ate-hint">Tell it like you'd tell a friend: what you cooked and what went in.</p>
+      <p class="ate-hint">Say what you cooked. We'll ask what's left.</p>
       <button class="mic" data-act="listen" aria-label="Start talking">${ICON.mic({ size: 30, stroke: 2.2 })}</button>
       ${note}${typed}
     </main>

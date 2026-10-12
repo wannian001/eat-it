@@ -108,12 +108,11 @@ export function weekPage(app) {
   const nav = `<div class="wk-nav"><button class="round" data-act="week-move" data-arg="-1" aria-label="Previous week">${ICON.back({ size: 16 })}</button><span>${esc(fmtDay(days[0].date))} – ${esc(fmtDay(end))}</span><button class="round" data-act="week-move" data-arg="1" aria-label="Next week">${ICON.next({ size: 16 })}</button>${off ? '<button class="link" data-act="week-move" data-arg="0">This week</button>' : ''}</div>`;
   return `<div class="page week">
     ${phoneTitle(app, 'Week calendar')}
-    <div class="desk-only">${pageHead(off === 0 ? 'This week' : off === 1 ? 'Next week' : off === -1 ? 'Last week' : off > 0 ? `In ${off} weeks` : `${-off} weeks ago`, 'Week calendar', 'The dates on your food, day by day, and which freezer bag is getting old.')}</div>
+    <div class="desk-only">${pageHead(off === 0 ? 'This week' : off === 1 ? 'Next week' : off === -1 ? 'Last week' : off > 0 ? `In ${off} weeks` : `${-off} weeks ago`, 'Week calendar')}</div>
     ${nav}
-    <p class="wk-hint">Tap a day to record what you used, or to mark a day you'll eat out.</p>
+    <p class="wk-hint">Tap a day to fill it in.</p>
     <div class="days" tabindex="0" aria-label="Seven days">${days.map((d) => dayCard(app, d)).join('')}</div>
     ${later.length && off >= 0 ? `<section>${secHead('Coming up')}<ul class="rows">${later.map((l) => { const t = dateTag(l.date, today); const n = daysBetween(today, lastGood(l.date)); return `<li><button class="row" data-act="lot" data-arg="${esc(l.id)}">${pic(l.food, { size: 32, lot: l })}<span class="r-main"><b>${esc(foodName(l.food, 2, l))}</b><small>${esc(n === 1 ? 'tomorrow' : `in ${n} days`)} · ${esc(fmtDay(lastGood(l.date)))}</small></span><span class="tag tag-${t.kind}">${esc(t.text)}</span></button></li>`; }).join('')}</ul></section>` : ''}
-    <p class="small muted pad">Forgot to say what you ate? Open any food on Home and change how much is left.</p>
   </div>`;
 }
 

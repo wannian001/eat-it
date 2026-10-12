@@ -5,6 +5,7 @@ import { foodName } from '../foods.js';
 import { fmtDay, greeting, dateTag } from '../dates.js';
 import { ICON, appIcon } from '../icons.js';
 import { esc, pic, pageHead, label } from '../ui.js';
+import { prefs } from '../store.js';
 import { homePicture, eatFirstHtml, todayHtml, shelfGroups } from './parts.js';
 
 export function phoneHeader(app, title) {
@@ -39,6 +40,16 @@ function listAll(app) {
   return `<section class="list">${body || ''}</section>`;
 }
 
+// First visit: how it works in three lines, until "Got it" (once per user, on this device).
+function guide(app) {
+  if (prefs.get(`guide:${app.store.persona.id}`, false)) return '';
+  const row = (icon, t, d) => `<li><span class="g-ic">${icon}</span><span><b>${t}</b><small>${d}</small></span></li>`;
+  return `<section class="card guide" aria-label="How it works">
+    <ul>${row(ICON.plus({ size: 18, stroke: 2.4 }), 'Add food', 'Snap it or the receipt.')}${row(ICON.fridge({ size: 18 }), 'Eat first', 'Use these soon.')}${row(ICON.mic({ size: 18 }), 'I ate', 'Say what you cooked.')}</ul>
+    <button class="btn btn-primary sm" data-act="guide-done">Got it</button>
+  </section>`;
+}
+
 export function homePage(app) {
   const { store, ui } = app;
   const s = store.state, p = store.persona, today = store.today, clock = store.clock;
@@ -49,6 +60,7 @@ export function homePage(app) {
   return `<div class="page home">
     ${phoneHeader(app, title)}
     <div class="desk-only">${pageHead(`${esc(fmtDay(today))} · ${esc(clock)}`, `${esc(greeting(clock))}, ${esc(s.profile.name || p.name)}`)}</div>
+    ${guide(app)}
     ${empty}
     <div class="home-grid">
       <div class="h-eat">${eatFirstHtml(app)}</div>
