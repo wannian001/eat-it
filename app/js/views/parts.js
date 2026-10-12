@@ -199,13 +199,20 @@ export function dayLog(s, day) {
 // "Ate at home today?" — the check that leads to logging what was used (stock out), for today or
 // any earlier day in the calendar. Yes asks whether to record it now (by voice); No marks the day as
 // eaten out (nothing to log). Once something is logged it lists what was used, with a way to add more.
+// A day still to come can be planned ahead: "Eating at home on Thursday?" — No marks it as a day out.
 export function mealCheck(app, day) {
   const s = app.store.state;
   const isToday = day === app.store.today;
-  const when = isToday ? 'today' : `on ${longDay(day).split(' ')[0]}`;
+  const name = longDay(day).split(' ')[0];
+  const when = isToday ? 'today' : `on ${name}`;
   const lines = dayLog(s, day);
   const ans = mealAnswer(s, day);
   const change = `<button class="link" data-act="meal" data-arg="${day}|none">Change</button>`;
+  if (day > app.store.today) {
+    if (ans === 'out') return `<div class="meal"><p>${ICON.fork({ size: 15 })}Eating out on ${esc(name)}</p>${change}</div>`;
+    if (ans === 'home') return `<div class="meal"><p>${ICON.home({ size: 15 })}Eating at home on ${esc(name)}</p>${change}</div>`;
+    return `<div class="meal ask"><p class="meal-q">Eating at home on ${esc(name)}?</p><div class="btn-row wrap"><button class="btn btn-primary sm" data-act="meal" data-arg="${day}|home">Yes</button><button class="btn btn-secondary sm" data-act="meal" data-arg="${day}|out">No, eating out</button></div></div>`;
+  }
   const record = (label, cls) => `<button class="btn ${cls} sm" data-act="ate-for" data-arg="${day}">${ICON.mic({ size: 16 })}${label}</button>`;
   if (lines.length) return `<div class="meal"><ul class="plain">${lines.map((t) => `<li>${esc(t)}</li>`).join('')}</ul><button class="chip-btn" data-act="ate-for" data-arg="${day}">${ICON.mic({ size: 14 })}Add more</button></div>`;
   if (ans === 'out') return `<div class="meal"><p>${ICON.fork({ size: 15 })}Ate out, nothing to log</p>${change}</div>`;

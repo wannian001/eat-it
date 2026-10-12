@@ -2,7 +2,7 @@
 
 一个真的能用的网页 App：功能沿用 v0.2 原型的一整套，界面换成 Raina 高保真画布（《Eat It! Hi-fi Prototype》，"Eat It! v3"）的设计。手机和电脑都能用，放进去、吃掉、改库存都会记下来，刷新后还在。
 
-**在线演示：** <https://claude.ai/artifact/PQCh5vW9sGnT6cbFa129iA>（不用装任何东西，手机电脑都能开。链接放在嘉阔的 Claude 账号里，默认只有他能打开；要给组员看，在页面右上角 Share 里打开分享。演示里的记录只存在你自己的浏览器里，互不影响。）
+**在线演示：** <https://wannian001.github.io/eat-it/>（不用装任何东西，手机电脑都能开，谁都能打开。语音要允许麦克风。演示里的记录只存在你自己的浏览器里，互不影响。）
 
 <p>
 <img src="screenshots/phone-01-home.png" width="200" alt="手机：Home">
@@ -54,9 +54,11 @@ AI 把这句话对上家里有的东西。说了具体数量的（"two tomatoes"
 
 以前的日子也能补：比如周六忘了，下周一在周历点开周六，选 Yes → Record by voice，AI 会问 "After that, is there any … left?"，记录算在周六那天。卡片收起时只留一行状态：Recorded · 3 / Ate out / At home · not recorded。
 
-| 手机：点开今天 | 手机：选了 Yes 之后 |
-|---|---|
-| <img src="screenshots/phone-08-week-open.png" width="260" alt="周历：Ate at home today?"> | <img src="screenshots/phone-09-week-record.png" width="260" alt="周历：Record what you used?"> |
+以后的日子可以提前定：比如确定周四一天都不在家吃，点开周四，问 **Eating at home on Thursday?**，选 **No, eating out**。卡片上会标 Eating out；那天到期的食物，卡片里会提醒前一天吃掉。想改主意就点 Change。
+
+| 手机：点开今天 | 手机：选了 Yes 之后 | 手机：提前标周四不在家吃 |
+|---|---|---|
+| <img src="screenshots/phone-08-week-open.png" width="220" alt="周历：Ate at home today?"> | <img src="screenshots/phone-09-week-record.png" width="220" alt="周历：Record what you used?"> | <img src="screenshots/phone-10-week-eat-out.png" width="220" alt="周历：Eating out on Thursday"> |
 
 电脑上，上周：周一选了 Yes（等着录音），周二选了出去吃：
 
@@ -89,7 +91,7 @@ AI 把这句话对上家里有的东西。说了具体数量的（"two tomatoes"
 | Food at home | `#/food` | 按地方分页，图 / 列表（电脑上是表格），搜索，Mine / Shared，编辑地方，拍照估有多满 |
 | Add food | `#/add` `#/ways` `#/scan` `#/review` | 六种添加方式和核对 |
 | I ate | `#/ate` | 语音出库 |
-| Week calendar | `#/week` | 一周七张日卡（照个人系统"本周"页的样子）：这天要吃掉的（Eat by）、冷冻满 4 周的那袋、今天要不要解冻；点开今天或以前的日子记吃饭；底下是 Coming up |
+| Week calendar | `#/week` | 一周七张日卡（照个人系统"本周"页的样子）：这天要吃掉的（Eat by）、冷冻满 4 周的那袋、今天要不要解冻；点开今天或以前的日子记吃饭，点开以后的日子提前标出哪天不在家吃；底下是 Coming up |
 | Shopping list | `#/shop` | 和室友共享的清单、谁去买、买之前的提醒（家里已有、室友在买、放不下）、家里还有多少空间 |
 | Household | `#/settings` | 家庭成员和邀请码、同住的人能看到什么、地方、提醒、邮件 / 超市账户、个人资料、数据 |
 | 桌面小组件、锁屏 | `#/widgets` `#/lock` | 画布 05/06 的预览，点了会真的改冰箱 |
@@ -104,7 +106,7 @@ AI 把这句话对上家里有的东西。说了具体数量的（"two tomatoes"
 
 | 手机：Shopping list | 手机：小组件 | 手机：锁屏 | 手机：Me |
 |---|---|---|---|
-| <img src="screenshots/phone-10-shopping-list.png" width="180" alt="购物清单"> | <img src="screenshots/phone-11-widgets.png" width="180" alt="桌面小组件"> | <img src="screenshots/phone-12-lock-screen.png" width="180" alt="锁屏"> | <img src="screenshots/phone-13-users.png" width="180" alt="Me：用户和家庭"> |
+| <img src="screenshots/phone-11-shopping-list.png" width="180" alt="购物清单"> | <img src="screenshots/phone-12-widgets.png" width="180" alt="桌面小组件"> | <img src="screenshots/phone-13-lock-screen.png" width="180" alt="锁屏"> | <img src="screenshots/phone-14-users.png" width="180" alt="Me：用户和家庭"> |
 
 所有截图在 [`screenshots/`](screenshots/)：`phone-*` 是 390 × 844（iPhone 尺寸，2 倍图），`desktop-*` 是 1440 × 900。
 
@@ -117,7 +119,11 @@ AI 把这句话对上家里有的东西。说了具体数量的（"two tomatoes"
 
 ## 打开
 
-在线：上面的演示链接，什么都不用装。
+在线：<https://wannian001.github.io/eat-it/>，什么都不用装。演示在单独的公开仓库 [wannian001/eat-it](https://github.com/wannian001/eat-it)，只放 App 代码和贴纸（没有文档、访谈材料和测试）；这个小组仓库仍然私有。改完 App 后这样更新演示：
+
+```bash
+sh app/publish-demo.sh <eat-it 仓库的本地目录>
+```
 
 本地：
 
@@ -173,7 +179,8 @@ Node 18 以上，无依赖。20 个测试，覆盖日期标签、Eat first、语
 ## 10-12 改了什么
 
 - 出库全部改成语音：I ate、Home 的 "Ate at home today?"、周历点开某一天，三个入口走同一套 AI 追问。
-- 周历：原来的 "Dinner" 开关改成 "Ate at home?"；点今天或以前的日子，卡片就地展开（不弹窗），以前的日子也能补记。
+- 周历：原来的 "Dinner" 开关改成 "Ate at home?"；点某一天，卡片就地展开（不弹窗）。以前的日子能补记，以后的日子能提前标 "Eating out"。
+- 在线演示改到 GitHub Pages：<https://wannian001.github.io/eat-it/>。
 - Home 精简：只留 Eat first、冰箱、"Ate at home today?"。
 - 删掉购物页的 "Shop together?"（和室友约空闲时间一起去买），设置里对应的开关也删了。
 - 设置里 "What Lily and Sam can see" 改成 "What your housemates can see"。
@@ -181,7 +188,7 @@ Node 18 以上，无依赖。20 个测试，覆盖日期标签、Eat first、语
 ## 已知限制
 
 - Chrome 的语音识别会把声音交给浏览器的识别服务，和概念里"语音只在手机上处理"不一致。视频和报告里不要拿这个原型当证据。
-- 在线演示里，有的浏览器不给网页里的麦克风权限，这时用 "Or type it" 打字。
+- 语音识别要 Chrome、Edge 或 Safari，并允许麦克风；Firefox 没有，这时用 "Or type it" 打字。
 - 估计天数（番茄约 1 周等）和储存小贴士都是我们的猜测，界面标了 "our guess" / "guide"。只有剩菜 2–3 天有来源（UQ，见 VISUAL-SPEC）。放进视频前要按 FSANZ 核对。
 - 画布只给了手机的 7 屏。电脑版的排版和手机版底部的标签栏是按 v0.2 补的，需要 Raina 确认。
 - 字体从 Google Fonts 加载，断网时退回系统字体；还没做离线缓存。

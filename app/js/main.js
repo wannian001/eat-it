@@ -3,7 +3,7 @@
 
 import { spotFor } from './seed.js';
 import { userProfile, currentUser, signIn, signOut, addUser, renameUser, removeUser, restartUser } from './users.js';
-import { addDays, daysBetween } from './dates.js';
+import { addDays, daysBetween, weekday } from './dates.js';
 import { CONFIG } from './config.js';
 import { openStore, localAdapter, httpAdapter, prefs } from './store.js';
 import { matchFood, customId, food, foodName, guessDays, defaultQty, shortName } from './foods.js';
@@ -293,7 +293,7 @@ const ACT = {
     const [day, ans] = split(arg);
     const mode = ans === 'home' ? 'cook' : ans === 'out' ? 'out' : 'none';
     const e = await dispatch({ type: 'plan', day, mode: ans === 'skip' ? 'cook' : mode, skip: ans === 'skip' });
-    if (ans === 'out') toast('Ate out: nothing to log.', e.id);
+    if (ans === 'out') toast(day > app.store.today ? `Eating out on ${weekday(day)}.` : 'Ate out: nothing to log.', e.id);
   },
   // The "Out tonight" widget (board 05).
   async out() {

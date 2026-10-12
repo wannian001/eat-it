@@ -1,7 +1,8 @@
 // Week calendar: seven day cards, like the owner's personal "week" page, each saying what to watch
-// for in food that day — what to eat by, which freezer bag gets old — plus a one-line meal status for
-// today and earlier days. Tapping today or an earlier day opens its card in place: "Ate at home that
-// day?" and, if yes, record what was used by voice (earlier days can be filled in later).
+// for in food that day — what to eat by, which freezer bag gets old — plus a one-line meal status.
+// Tapping a day opens its card in place: for today or an earlier day, "Ate at home that day?" and, if
+// yes, record what was used by voice (earlier days can be filled in later); for a day still to come,
+// "Eating at home?", so a day out can be planned ahead.
 
 import { foodName, shortName } from '../foods.js';
 import { modeOf, nudge, bagNumber, frozenLots, placeOf, mealAnswer, mealSkipped } from '../state.js';
@@ -60,8 +61,12 @@ function foodBlocks(app, d) {
 
 // One line on the card once the day has an answer; nothing while it hasn't.
 function mealStatus(s, d) {
-  if (!d.past && !d.isToday) return '';
   const ans = mealAnswer(s, d.date);
+  if (!d.past && !d.isToday) {
+    if (ans === 'out') return `<p class="wk-meal out">${ICON.fork({ size: 14 })}Eating out</p>`;
+    if (ans === 'home') return `<p class="wk-meal">${ICON.home({ size: 14 })}Eating at home</p>`;
+    return '';
+  }
   if (d.ate.length) return `<p class="wk-meal done">${ICON.check({ size: 14, stroke: 2.6 })}Recorded · ${d.ate.length}</p>`;
   if (ans === 'out') return `<p class="wk-meal">${ICON.fork({ size: 14 })}Ate out</p>`;
   if (ans === 'home') return `<p class="wk-meal">${ICON.home({ size: 14 })}${mealSkipped(s, d.date) ? 'At home · not recorded' : 'At home'}</p>`;
@@ -71,21 +76,20 @@ function mealStatus(s, d) {
 function dayCard(app, d) {
   const s = app.store.state;
   const blocks = foodBlocks(app, d);
-  const canOpen = d.past || d.isToday;
-  const open = canOpen && app.ui.weekOpen === d.date;
+  const open = app.ui.weekOpen === d.date;
+  const future = !d.past && !d.isToday;
   // Opened in place: the meal check ("Ate at home?" → record by voice) shows inside the card.
   if (open) {
-    blocks.push(`<div class="block day-more"><span class="k">Meals</span>${mealCheck(app, d.date)}</div>`);
+    const early = future && d.out && d.due.length ? '<p class="meal-note">Food due that day: have it the day before.</p>' : '';
+    blocks.push(`<div class="block day-more"><span class="k">Meals</span>${mealCheck(app, d.date)}${early}</div>`);
     if (d.added) blocks.push(`<div class="block"><span class="k">Added</span><p>${d.added} item${d.added > 1 ? 's' : ''}</p></div>`);
   }
-  const added = canOpen && d.added ? `<p class="wk-meal">${ICON.plus({ size: 14, stroke: 2.4 })}${d.added} added</p>` : '';
+  const added = !future && d.added ? `<p class="wk-meal">${ICON.plus({ size: 14, stroke: 2.4 })}${d.added} added</p>` : '';
   const foot = open ? '' : mealStatus(s, d) + added;
   const title = `<h2>${esc(weekday(d.date))}${d.isToday ? ' · Today' : ''}</h2><span class="date">${esc(dayMonth(d.date))}</span>`;
-  const head = canOpen
-    ? `<button class="day-head" data-act="day" data-arg="${d.date}" aria-expanded="${open}"><span>${title}</span><span class="chev" aria-hidden="true">${ICON.next({ size: 16 })}</span></button>`
-    : `<div class="day-head"><span>${title}</span></div>`;
+  const head = `<button class="day-head" data-act="day" data-arg="${d.date}" aria-expanded="${open}"><span>${title}</span><span class="chev" aria-hidden="true">${ICON.next({ size: 16 })}</span></button>`;
   // A closed card opens from anywhere on it; an open one only closes from its head.
-  return `<article class="day${d.isToday ? ' today' : ''}${d.past ? ' past' : ''}${open ? ' open' : ''}${canOpen ? ' can-open' : ''}" id="day-${d.date}"${canOpen && !open ? ` data-act="day" data-arg="${d.date}"` : ''}>
+  return `<article class="day${d.isToday ? ' today' : ''}${d.past ? ' past' : ''}${open ? ' open' : ' can-open'}" id="day-${d.date}"${!open ? ` data-act="day" data-arg="${d.date}"` : ''}>
     ${head}
     ${blocks.join('')}
     ${foot ? `<div class="wk-foot">${foot}</div>` : ''}
@@ -105,7 +109,7 @@ export function weekPage(app) {
     ${phoneTitle(app, 'Week calendar')}
     <div class="desk-only">${pageHead(off === 0 ? 'This week' : off === 1 ? 'Next week' : off === -1 ? 'Last week' : off > 0 ? `In ${off} weeks` : `${-off} weeks ago`, 'Week calendar', 'What to watch for in food each day: what to eat by and which freezer bag is getting old.')}</div>
     ${nav}
-    <p class="wk-hint">Tap a day to say whether you ate at home and record what you used.</p>
+    <p class="wk-hint">Tap a day to record what you used, or to mark a day you'll eat out.</p>
     <div class="days" tabindex="0" aria-label="Seven days">${days.map((d) => dayCard(app, d)).join('')}</div>
     ${later.length ? `<section>${secHead('Coming up')}<ul class="rows">${later.map((l) => { const t = dateTag(l.date, today); return `<li><button class="row" data-act="lot" data-arg="${esc(l.id)}">${pic(l.food, { size: 32, lot: l })}<span class="r-main"><b>${esc(foodName(l.food, 2, l))}</b><small>${esc(fmtDay(lastGood(l.date)))}</small></span><span class="tag tag-${t.kind}">${esc(`in ${daysBetween(today, lastGood(l.date))} days`)}</span></button></li>`; }).join('')}</ul></section>` : ''}
     <p class="small muted pad">Forgot to say what you ate? Open any food on Home and change how much is left.</p>
