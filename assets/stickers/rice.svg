@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -6 132 132" width="264" height="264"><g>
+<path d="M32 20h56l6 12v68a8 8 0 0 1-8 8H34a8 8 0 0 1-8-8V32z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M32 20h56l-4 10H36z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="34" y="48" width="52" height="34" rx="8" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/>
+<ellipse cx="48" cy="62" rx="3" ry="5" transform="rotate(-25 48 62)" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/><ellipse cx="60" cy="66" rx="3" ry="5" transform="rotate(15 60 66)" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/><ellipse cx="72" cy="60" rx="3" ry="5" transform="rotate(-10 72 60)" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/><ellipse cx="54" cy="74" rx="3" ry="5" transform="rotate(30 54 74)" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/><ellipse cx="68" cy="74" rx="3" ry="5" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="32" y="34" width="5" height="64" rx="2.5" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/>
+</g><g>
+<path d="M32 20h56l6 12v68a8 8 0 0 1-8 8H34a8 8 0 0 1-8-8V32z" fill="#F4F1E8"/>
+<path d="M32 20h56l-4 10H36z" fill="#DCD5C2"/>
+<rect x="34" y="48" width="52" height="34" rx="8" fill="#C9E77A"/>
+<ellipse cx="48" cy="62" rx="3" ry="5" fill="#FFFFFF" transform="rotate(-25 48 62)"/><ellipse cx="60" cy="66" rx="3" ry="5" fill="#FFFFFF" transform="rotate(15 60 66)"/><ellipse cx="72" cy="60" rx="3" ry="5" fill="#FFFFFF" transform="rotate(-10 72 60)"/><ellipse cx="54" cy="74" rx="3" ry="5" fill="#FFFFFF" transform="rotate(30 54 74)"/><ellipse cx="68" cy="74" rx="3" ry="5" fill="#FFFFFF"/>
+<rect x="32" y="34" width="5" height="64" rx="2.5" fill="#FFFFFF" opacity="0.7"/>
+</g></svg>
