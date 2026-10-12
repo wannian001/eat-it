@@ -204,6 +204,7 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .tile { position: relative; height: 70px; padding: 0 0 2px; display: grid; place-items: end center; background: none; border: 0; border-radius: 14px; }
 .tile:active { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 .tile.dim { opacity: .25; }
+.zone.dim { opacity: .4; }
 .tile .pic { filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--ink) 12%, transparent)); }
 .tile-name { display: none; }
 .count { position: absolute; right: 8px; bottom: 2px; min-width: 19px; height: 19px; padding: 0 4px; display: grid; place-items: center; border-radius: 10px; background: var(--white); box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 22%, transparent); font: 800 11px/1 var(--font-title); }
