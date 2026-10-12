@@ -480,6 +480,14 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .wf-text { display: flex; flex-direction: column; min-width: 0; }
 .wf-text b { font: 700 13px/1.25 var(--font-body); overflow-wrap: anywhere; }
 .wf-text small { font: 700 11px/1.3 var(--font-body); color: var(--stone); }
+.meal { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%; }
+.meal p { font-size: 13px; }
+.meal.ask { padding: 10px; border-radius: 14px; background: var(--wash); }
+.meal-q { font: 800 15px var(--font-title) !important; }
+.meal .btn-row { margin-top: 2px; }
+.today-meal { margin-top: 12px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--leaf-deep) 18%, transparent); }
+.today-meal .meal.ask { padding: 0; background: none; }
+.card .link { margin-top: 6px; }
 .out-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--white); font: 700 12px var(--font-body); color: var(--stone); white-space: nowrap; }
 .out-toggle.on { background: var(--amber-soft); border-color: var(--amber); color: var(--amber-text); }
 

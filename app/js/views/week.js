@@ -7,7 +7,7 @@ import { modeOf, nudge, bagNumber, frozenLots, placeOf } from '../state.js';
 import { addDays, daysBetween, weekday, dayMonth, fmtDay, dateTag, lastGood, frozenWeeks } from '../dates.js';
 import { ICON } from '../icons.js';
 import { esc, pic, pageHead, secHead } from '../ui.js';
-import { phoneTitle } from './parts.js';
+import { phoneTitle, dayLog, mealCheck } from './parts.js';
 
 const monday = (day) => addDays(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7));
 
@@ -16,34 +16,6 @@ const KIND_WORD = { use_by: 'use by', best_before: 'best before', est: 'our gues
 // Food in stock whose date falls on a day (not in the freezer, not a housemate's).
 function dueOn(s, day) {
   return [...s.lots.values()].filter((l) => l.owner !== 'housemate' && placeOf(s, l.place)?.kind !== 'frozen' && lastGood(l.date) === day);
-}
-
-function historyLine(h) {
-  const n = foodName(h.food, 2, h);
-  switch (h.kind) {
-    case 'ate':
-      if (h.left) return `${n}: ${h.left === 'none' ? 'all gone' : h.left === 'little' ? 'a little left' : 'plenty left'}`;
-      if (h.part) return `${n}: some`;
-      return `${n} −${h.qty}${h.unit === 'bag' ? (h.qty === 1 ? ' bag' : ' bags') : ''}`;
-    case 'use': return `${n}: ${h.how === 'some' ? 'used some' : 'used one'}`;
-    case 'qty': return h.to <= 0 ? `${n}: all gone` : `${n}: ${h.from} → ${h.to}`;
-    case 'amount': return `${n}: ${h.value.toLowerCase()} left`;
-    case 'toss': return `${n}: thrown out`;
-    case 'thaw': return `${n}: thawed`;
-    case 'freeze': return `${n}: frozen`;
-    default: return '';
-  }
-}
-
-// Several taps on − for the same food in a row read as one change: "Eggs: 6 → 4".
-function mergeFixes(list) {
-  const out = [];
-  for (const h of list) {
-    const prev = out[out.length - 1];
-    if (h.kind === 'qty' && prev?.kind === 'qty' && prev.food === h.food && prev.name === h.name && prev.to === h.from) prev.to = h.to;
-    else out.push({ ...h });
-  }
-  return out;
 }
 
 export function weekDays(app, offset = 0) {
@@ -65,7 +37,7 @@ export function weekDays(app, offset = 0) {
       overdue: isToday ? [...s.lots.values()].filter((l) => l.owner !== 'housemate' && lastGood(l.date) && lastGood(l.date) < today) : [],
       freezer: past ? [] : freezer,
       thaw: isToday ? nudge(s, today) : null,
-      ate: mergeFixes(hist.filter((h) => h.kind !== 'put')).map(historyLine).filter(Boolean),
+      ate: dayLog(s, d),
       added: hist.filter((h) => h.kind === 'put').reduce((a, h) => a + h.count, 0),
     };
   });
@@ -80,13 +52,12 @@ function dayCard(app, d) {
   if (d.due.length) blocks.push(`<div class="block"><span class="k">Eat by</span><ul>${d.due.map(item).join('')}</ul></div>`);
   if (d.thaw) blocks.push(`<div class="block frost"><span class="k">Freezer</span><div class="wk-line">${pic(d.thaw.food, { bag: true, size: 26, lot: d.thaw })}<span class="wf-text"><b>${esc(shortName(d.thaw.food, d.thaw))}, bag ${bagNumber(s, d.thaw)}</b><small>${frozenWeeks(d.thaw.date.on, today)} weeks frozen</small></span></div><button class="chip-btn on" data-act="thaw" data-arg="${esc(d.thaw.id)}">Thaw tonight</button></div>`);
   else if (d.freezer.length) blocks.push(`<div class="block frost"><span class="k">Freezer</span><ul>${d.freezer.map((l) => `<li class="wk-line">${pic(l.food, { bag: true, size: 26, lot: l })}<span class="wf-text"><b>${esc(shortName(l.food, l))}, bag ${bagNumber(s, l)}</b><small>${daysBetween(l.date.on, d.date) / 7} weeks frozen</small></span></li>`).join('')}</ul></div>`);
-  if (!d.past) {
-    blocks.push(`<div class="block"><span class="k">Dinner</span><button class="out-toggle${d.out ? ' on' : ''}" data-act="out-day" data-arg="${d.date}" aria-pressed="${d.out}" aria-label="${d.out ? 'Eating out' : 'At home'}, tap to change">${d.out ? `${ICON.fork({ size: 15 })}Eating out` : `${ICON.home({ size: 15 })}At home`}</button></div>`);
-  } else if (d.out) {
-    blocks.push(`<div class="block"><span class="k">Dinner</span><p>${ICON.fork({ size: 15 })}Ate out</p></div>`);
+  if (d.isToday) {
+    blocks.push(`<div class="block"><span class="k">Meals today</span>${mealCheck(app, d.date)}</div>`);
+  } else if (d.past) {
+    blocks.push(`<div class="block"><span class="k">${d.out ? 'Used · ate out' : 'Used'}</span>${d.ate.length ? `<ul class="plain">${d.ate.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : `<p class="muted">${d.out ? 'Nothing to log' : 'Nothing recorded'}</p>`}</div>`);
   }
   if (d.past || d.isToday) {
-    blocks.push(`<div class="block"><span class="k">${d.isToday ? 'Eaten so far' : 'Ate & used'}</span>${d.ate.length ? `<ul class="plain">${d.ate.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : '<p class="muted">Nothing recorded</p>'}</div>`);
     if (d.added) blocks.push(`<div class="block"><span class="k">Added</span><p>${d.added} item${d.added > 1 ? 's' : ''}</p></div>`);
   }
   if (!d.past && !d.due.length && !d.freezer.length && !d.thaw && !d.overdue.length) blocks.splice(0, 0, '<div class="block"><span class="k">Eat by</span><p class="muted">Nothing due</p></div>');

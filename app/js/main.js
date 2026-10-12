@@ -281,12 +281,22 @@ const ACT = {
     const e = await dispatch({ type: 'toss', lot: id });
     toast(`${name} removed.`, e.id);
   },
-  async 'out-day'(day) {
-    const on = modeOf(app.store.state, day) !== 'out';
-    const e = await dispatch({ type: 'plan', day, mode: on ? 'out' : 'cook' });
-    toast(on ? `${day === app.store.today ? 'Tonight' : 'That night'}: eating out. Reminders move to the next day.` : 'Back to eating at home.', e.id);
+  // "Ate at home today?": yes opens "I ate" straight away (unless something is logged already),
+  // no marks the day as eaten out, none takes the answer back.
+  async meal(arg) {
+    const [day, ans] = split(arg);
+    const mode = ans === 'home' ? 'cook' : ans === 'out' ? 'out' : 'none';
+    const e = await dispatch({ type: 'plan', day, mode });
+    if (ans === 'home' && !(app.store.state.history[day] || []).some((h) => h.kind !== 'put')) { go('ate'); return; }
+    if (ans === 'out') toast('Ate out: nothing to log today.', e.id);
   },
-  out() { return ACT['out-day'](app.store.today); },
+  // The "Out tonight" widget (board 05).
+  async out() {
+    const today = app.store.today;
+    const on = modeOf(app.store.state, today) !== 'out';
+    const e = await dispatch({ type: 'plan', day: today, mode: on ? 'out' : 'none' });
+    toast(on ? 'Eating out tonight. Reminders move to tomorrow.' : 'Back to eating at home.', e.id);
+  },
   'week-move'(n) { app.ui.weekOffset = Number(n) === 0 ? 0 : (app.ui.weekOffset || 0) + Number(n); render(); },
   async qty(arg) {
     const [lot, n] = split(arg);
