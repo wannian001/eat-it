@@ -42,6 +42,7 @@ docs/VISUAL-SPEC.md                    视觉规范
 docs/Eat-It_Teammate-Handoff_v1.md     组员交接单（含可粘贴的 AI 指令）
 docs/Eat-It_Storyboard_v2.md           视频分镜
 assets/stickers/                       食物贴纸 SVG（25 个，_overview.png 是总览）
+app/                                   可运行版（按画布 v3 七块画板还原，纯前端），先读 app/README.md
 PLAN.md / docs/DESIGN.md / README.md   旧版（v0.2）记录，仅作证据和历史
 index.html / phone-v0.1.html / 截图/    旧版 lo-fi 原型，不再扩展
 ```
