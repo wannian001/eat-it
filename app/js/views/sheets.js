@@ -1,6 +1,6 @@
 // Sheets: a bottom sheet on the phone, a side drawer on the desktop (v0.2 drawers, hi-fi look).
 import { FOODS, food, foodName, shortName, matchFood } from '../foods.js';
-import { placeOf, bagNumber, oldestFrozen, plannedDay, modeOf, hasFreezer } from '../state.js';
+import { placeOf, bagNumber, oldestFrozen, hasFreezer } from '../state.js';
 import { dateTag, daysBetween, fmtDay, relDay, dayMonth, addDays } from '../dates.js';
 import { shelvesOf, SPOT_NAMES } from '../seed.js';
 import { ICON, placeIcon } from '../icons.js';
@@ -75,12 +75,6 @@ export function lotSheet(app) {
   const setDate = ui.sheet.edit === 'date'
     ? `<label class="fld"><span>Date on the pack</span><select data-change="lot-date" data-arg="${esc(lot.id)}"><option value="">Choose…</option>${dateOptions(today).map(([v, t]) => `<option value="${v}">${esc(t)}</option>`).join('')}</select></label>`
     : '';
-  const pd = plannedDay(s, lot.id, today);
-  const planLine = pd
-    ? `<p class="plan-line">${ICON.plan({ size: 16 })}Planned for ${esc(relDay(pd, today))}.${frozen && daysBetween(today, pd) <= 1 ? ' <b>Thaw it in the fridge tonight.</b>' : ''}</p>`
-    : !frozen && modeOf(s, today) === 'cook' && lot.date?.kind !== 'none'
-      ? `<p class="plan-line">${ICON.plan({ size: 16 })}Not planned yet. <button class="chip-btn" data-act="plan-add" data-arg="${esc(lot.id)}|${today}">Add to today</button></p>`
-      : '';
   const shelves = place ? shelvesOf(place, p).filter((x) => x.kind !== 'locked') : [];
   const where = `<div class="where">
     <label class="fld inline"><span>In the</span><select data-change="lot-place" data-arg="${esc(lot.id)}" aria-label="Which place">${s.places.map((pl) => `<option value="${esc(pl.id)}"${pl.id === lot.place ? ' selected' : ''}>${esc(pl.name)}</option>`).join('')}</select></label>
@@ -99,12 +93,17 @@ export function lotSheet(app) {
       ${lot.date?.kind === 'est' && ui.sheet.edit !== 'date' ? `<button class="chip-btn" data-act="sheet-edit" data-arg="date">Set the date from the pack</button>` : ''}
       ${setDate}
     </div>
-    ${planLine}
     <div class="btn-row">
       <button class="btn btn-primary" data-act="use" data-arg="${esc(lot.id)}|one">Used it</button>
       <button class="btn btn-secondary" data-act="use" data-arg="${esc(lot.id)}|some">Used some</button>
     </div>
-    <div class="sheet-sec"><h3>How much is left</h3><div class="seg small">${['Full', 'Most', 'Half', 'Low'].map((a) => `<button class="${amt === a ? 'on' : ''}" data-act="amount" data-arg="${esc(lot.id)}|${a}" aria-pressed="${amt === a}">${a}</button>`).join('')}</div></div>
+    <div class="sheet-sec stock"><h3>In stock <small>Forgot to say what you ate? Fix it here.</small></h3>
+      <div class="stock-row">
+        ${lot.unit === 'pc' ? `<span class="stepper"><button class="step" data-act="qty" data-arg="${esc(lot.id)}|${lot.qty - 1}" aria-label="One fewer">${ICON.minus({ size: 16 })}</button><b class="stock-n" aria-live="polite">${lot.qty}</b><button class="step" data-act="qty" data-arg="${esc(lot.id)}|${lot.qty + 1}" aria-label="One more">${ICON.plus({ size: 16 })}</button></span>` : ''}
+        <div class="seg small">${['Full', 'Most', 'Half', 'Low'].map((a) => `<button class="${amt === a ? 'on' : ''}" data-act="amount" data-arg="${esc(lot.id)}|${a}" aria-pressed="${amt === a}">${a}</button>`).join('')}</div>
+        <button class="chip-btn" data-act="qty" data-arg="${esc(lot.id)}|0">All gone</button>
+      </div>
+    </div>
     <div class="sheet-sec"><h3>Where it is</h3>${where}</div>
     <div class="sheet-sec"><h3>Quick update</h3><div class="acts">
       <button class="act" data-act="open" data-arg="${esc(lot.id)}"${frozen || lot.opened ? ' disabled' : ''}>Opened</button>
@@ -114,17 +113,6 @@ export function lotSheet(app) {
     </div></div>
     ${lot.tip || food(lot.food).tip ? `<div class="tip"><b>Storage tip</b><span>${esc(lot.tip || food(lot.food).tip)}</span><em>guide</em></div>` : ''}
   `, { label: title });
-}
-
-export function planChangeSheet() {
-  const opt = (arg, t, sub) => `<button class="opt" data-act="plan-change" data-arg="${arg}"><b>${t}</b><small>${sub}</small></button>`;
-  return wrap(`<h2 class="sheet-title">What changed?</h2><p class="sheet-sub">Today's food moves to the next day you'll cook, soonest first.</p>
-    <div class="opts">
-      ${opt('out', 'Eating out tonight', 'Friends, a date, a work dinner')}
-      ${opt('busy', 'Too tired to cook', 'Something quick instead')}
-      ${opt('away', 'Away for 3 days', "A trip, an exam week, staying at a friend's")}
-      ${opt('plan', 'Something else', 'Open the week plan')}
-    </div>`, { label: 'What changed?' });
 }
 
 export function placesSheet(app) {

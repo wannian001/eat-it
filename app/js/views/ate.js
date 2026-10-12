@@ -1,6 +1,7 @@
 // Board 04, extended: say what you cooked today -> AI reads it -> for anything you didn't give a
 // number for, it asks "After today, is there any curry left?" (plenty / a little / all gone)
 // -> "Got it" with what comes out of the fridge -> Done.
+
 import { food, foodName, shortName } from '../foods.js';
 import { countOf, frozenLots, lotsOf } from '../state.js';
 import { parseAte } from '../parse.js';

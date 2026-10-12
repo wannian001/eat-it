@@ -1,7 +1,7 @@
-// Pieces several pages share: the open fridge, food tiles, Eat first, Tonight, Needs a look, Room at home.
+// Pieces several pages share: the open fridge, food tiles, Eat first, Today, Needs a look, Room at home.
 import { food, foodName, shortName } from '../foods.js';
-import { eatFirst, oldestFrozen, units, modeOf, planWarnings, rescueDay, placeOf, hasFreezer } from '../state.js';
-import { frozenWeeks, dateTag, fmtDay, urgency, daysBetween } from '../dates.js';
+import { eatFirst, oldestFrozen, units, modeOf, nudge, placeOf, hasFreezer } from '../state.js';
+import { frozenWeeks, fmtDay, urgency, daysBetween } from '../dates.js';
 import { shelvesOf } from '../seed.js';
 import { ICON, placeIcon, appIcon } from '../icons.js';
 import { esc, pic, tag, dotHtml, label, amountText } from '../ui.js';
@@ -133,46 +133,20 @@ export function lotRow(app, lot, { meta, right, act = 'lot' } = {}) {
   return `<button class="row" data-act="${act}" data-arg="${esc(lot.id)}">${pic(lot.food, { bag: lot.bag, size: 36, lot })}<span class="r-main"><b>${esc(foodName(lot.food, lot.unit === 'pc' ? lot.qty : 1, lot))}</b><small>${esc(m)}</small></span>${right ?? tag(lot.date, today)}</button>`;
 }
 
-// What moved after plans changed, and what won't last (v0.2 banner).
-export function moveBanner(app) {
+// Today on Home: what to eat by today, the freezer nudge, and the "Out tonight" switch.
+export function todayHtml(app) {
   const s = app.store.state, today = app.store.today;
-  const mv = s.lastMove;
-  const warns = planWarnings(s, today);
-  if (!mv && !warns.length) return '';
-  let msg = '';
-  if (mv && mv.mode !== 'cook') {
-    const moved = mv.moved.filter((m) => s.lots.has(m.lot));
-    const tos = [...new Set(moved.map((m) => m.to))];
-    msg = !moved.length ? 'Nothing was planned for that day, so nothing moved.'
-      : tos.length === 1 && tos[0] ? `${moved.length} item${moved.length > 1 ? 's' : ''} moved to ${fmtDay(tos[0])}.` : `${moved.length} items moved to the next days you cook.`;
-    const first = moved.map((m) => s.lots.get(m.lot)).filter((l) => l && l.date?.kind !== 'frozen')
-      .sort((a, b) => (urgency(a.date, today) ?? 99) - (urgency(b.date, today) ?? 99))[0];
-    if (first) msg += ` Use the ${foodName(first.food, 2, first).toLowerCase()} first: ${lowerFirst(dateTag(first.date, today).text)}.`;
-  }
-  const w = warns.map(({ lot, day }) => {
-    const alt = rescueDay(s, lot, today);
-    const fix = alt && alt !== day ? `<button class="chip-btn on" data-act="plan-move" data-arg="${esc(lot.id)}|${alt}">Move to ${esc(fmtDay(alt))}</button>`
-      : hasFreezer(s) && lot.date?.kind !== 'frozen' ? `<button class="chip-btn" data-act="lot" data-arg="${esc(lot.id)}">Freeze it</button>` : '';
-    return `<div class="warn-row"><span><b>${esc(foodName(lot.food, 2, lot))}</b> may not last until ${esc(fmtDay(day))} (${esc(lowerFirst(dateTag(lot.date, today).text))}).</span>${fix}</div>`;
-  }).join('');
-  const undo = app.ui.lastPlanEvent ? `<button class="chip-btn" data-act="undo" data-arg="${esc(app.ui.lastPlanEvent)}">${ICON.undo({ size: 14 })}Undo</button>` : '';
-  return `<div class="banner" role="status">${msg ? `<p>${esc(msg)}</p>` : ''}${w}${undo ? `<div>${undo}</div>` : ''}</div>`;
-}
-
-export function tonightHtml(app) {
-  const s = app.store.state, today = app.store.today;
+  const due = [...s.lots.values()].filter((l) => l.owner !== 'housemate' && placeOf(s, l.place)?.kind !== 'frozen' && l.date?.on && l.date.kind !== 'frozen' && l.date.on <= today)
+    .sort((a, b) => (urgency(a.date, today) ?? 99) - (urgency(b.date, today) ?? 99));
+  const out = modeOf(s, today) === 'out';
   const hr = parseInt(app.store.clock, 10);
-  const when = hr >= 15 ? 'tonight' : 'today';
-  const d = s.plan[today];
-  const m = modeOf(s, today);
-  if (m !== 'cook') {
-    return `<div class="card"><p class="card-t">${m === 'out' ? 'Eating out' : 'Not cooking'} ${when}</p><p class="muted">Food planned for ${when} has moved to your next cooking day.</p>
-      <div class="btn-row wrap"><button class="btn btn-secondary sm" data-act="go" data-arg="plan">See the week</button>${app.ui.lastPlanEvent ? `<button class="btn btn-quiet sm" data-act="undo" data-arg="${esc(app.ui.lastPlanEvent)}">Undo</button>` : ''}</div></div>`;
-  }
-  const lots = (d?.lots || []).map((id) => s.lots.get(id)).filter(Boolean);
-  return `<div class="card card-leaf"><p class="card-t">${lots.length ? `Planned for ${when}` : `Nothing planned for ${when}`}</p>
-    ${lots.length ? `<div class="pills">${lots.map((l) => `<button class="pill-food" data-act="lot" data-arg="${esc(l.id)}">${pic(l.food, { bag: l.bag, size: 22, lot: l })}${esc(foodName(l.food, 2, l))}</button>`).join('')}</div>` : ''}
-    <div class="btn-row wrap"><button class="btn btn-primary sm" data-act="sheet" data-arg="planchg">Plans changed?</button><button class="btn btn-secondary sm" data-act="go" data-arg="plan">See the week</button></div></div>`;
+  const thaw = nudge(s, today);
+  return `<div class="card card-leaf">
+    <p class="card-t">${due.length ? `Eat by ${hr >= 15 ? 'tonight' : 'today'}` : 'Nothing due today'}</p>
+    ${due.length ? `<div class="pills">${due.map((l) => `<button class="pill-food" data-act="lot" data-arg="${esc(l.id)}">${pic(l.food, { bag: l.bag, size: 22, lot: l })}${esc(foodName(l.food, 2, l))}</button>`).join('')}</div>` : ''}
+    ${thaw ? `<p class="small">Freezer: ${esc(shortName(thaw.food, thaw))}, bag 1 is ${frozenWeeks(thaw.date.on, today)} weeks old. <button class="link" data-act="thaw" data-arg="${esc(thaw.id)}">Thaw tonight</button></p>` : ''}
+    <div class="btn-row wrap"><button class="btn ${out ? 'btn-primary' : 'btn-secondary'} sm" data-act="out-day" data-arg="${today}" aria-pressed="${out}">${out ? `${ICON.fork({ size: 16 })}Eating out tonight` : `${ICON.fork({ size: 16 })}Out tonight?`}</button><button class="btn btn-quiet sm" data-act="go" data-arg="week">See the week</button></div>
+  </div>`;
 }
 
 export function needsLook(app) {

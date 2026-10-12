@@ -1,12 +1,13 @@
-// Wiring: the shell (desktop side nav / phone tab bar), routes (#/plan …), one click handler for
+// Wiring: the shell (desktop side nav / phone tab bar), routes (#/week …), one click handler for
 // every data-act, change/input handlers, the voice session and the user system.
+
 import { spotFor } from './seed.js';
 import { userProfile, currentUser, signIn, signOut, addUser, renameUser, removeUser, restartUser } from './users.js';
 import { addDays, daysBetween } from './dates.js';
 import { CONFIG } from './config.js';
 import { openStore, localAdapter, httpAdapter, prefs } from './store.js';
 import { matchFood, customId, food, foodName, guessDays, defaultQty, shortName } from './foods.js';
-import { placeOf, firstOfKind, oldestFrozen, modeOf } from './state.js';
+import { placeOf, firstOfKind, modeOf } from './state.js';
 import { ICON, appIcon, wordmark } from './icons.js';
 import { esc } from './ui.js';
 import { homePage } from './views/home.js';
@@ -14,28 +15,28 @@ import { foodPage } from './views/food.js';
 import { addPage, scanPage, waysPage, reviewPage, buildLines, newLine, putLines } from './views/add.js';
 import { atePage, ateResult, questionsFor } from './views/ate.js';
 import { understand } from './ai.js';
-import { planPage } from './views/plan.js';
+import { weekPage } from './views/week.js';
 import { shopPage, shopCheck } from './views/shop.js';
 import { householdPage } from './views/household.js';
 import { signInPage, userList } from './views/people.js';
 import { widgetsPage, lockPage } from './views/phone.js';
 import { onboardingPage, freshOnboarding } from './views/onboarding.js';
-import { lotSheet, planChangeSheet, placesSheet, measureSheet, typeSheet, consentSheet, emailSheet, pickSheet } from './views/sheets.js';
+import { lotSheet, placesSheet, measureSheet, typeSheet, consentSheet, emailSheet, pickSheet } from './views/sheets.js';
 
 const root = document.getElementById('app');
-const ROUTES = { home: homePage, food: foodPage, add: addPage, ways: waysPage, scan: scanPage, review: reviewPage, ate: atePage, plan: planPage, shop: shopPage, settings: householdPage, widgets: widgetsPage, lock: lockPage };
+const ROUTES = { home: homePage, food: foodPage, add: addPage, ways: waysPage, scan: scanPage, review: reviewPage, ate: atePage, week: weekPage, plan: weekPage, shop: shopPage, settings: householdPage, widgets: widgetsPage, lock: lockPage };
 const FULL = new Set(['add', 'scan', 'ate', 'widgets', 'lock']); // phone: no tab bar
 const NO_TABS = new Set([...FULL, 'review', 'ways']);
-const SHEETS = { lot: lotSheet, planchg: planChangeSheet, places: placesSheet, measure: measureSheet, type: typeSheet, consent: consentSheet, email: emailSheet, pick: pickSheet };
-const NAV = [['home', 'Home', 'home'], ['food', 'Food at home', 'fridge'], ['plan', 'Week plan', 'plan'], ['shop', 'Shopping', 'cart'], ['settings', 'Household', 'settings']];
-const TABS = [['home', 'Home', 'fridge'], ['food', 'Food', 'list'], ['plan', 'Plan', 'plan'], ['shop', 'Shop', 'cart'], ['settings', 'Me', 'user']];
+const SHEETS = { lot: lotSheet, places: placesSheet, measure: measureSheet, type: typeSheet, consent: consentSheet, email: emailSheet, pick: pickSheet };
+const NAV = [['home', 'Home', 'home'], ['food', 'Food at home', 'fridge'], ['week', 'Week calendar', 'plan'], ['shop', 'Shopping', 'cart'], ['settings', 'Household', 'settings']];
+const TABS = [['home', 'Home', 'fridge'], ['food', 'Food', 'list'], ['week', 'Week', 'plan'], ['shop', 'Shop', 'cart'], ['settings', 'Me', 'user']];
 
 const freshAdd = (over = {}) => ({ mode: 'photo', picks: [], scanning: false, src: 'picks', img: null, lines: [], edit: null, editQty: null, ...over });
 const freshAte = () => ({ phase: 'idle', text: '', items: [], questions: [], answers: {}, step: 0, result: null });
 const freshUi = (keep = {}) => ({
   view: prefs.get('view', 'picture'), sheet: null, add: freshAdd(), ate: freshAte(),
   food: { place: null, q: '', own: 'all', view: 'picture' }, toast: null, shopAlert: null, flash: false,
-  lastPlanEvent: null, confirm: null, lockDismissed: false, userMenu: false, adding: false, onb: freshOnboarding(), ...keep,
+  weekOffset: 0, confirm: null, lockDismissed: false, userMenu: false, adding: false, onb: freshOnboarding(), ...keep,
 });
 const app = { store: null, route: 'home', ui: freshUi() };
 
@@ -78,8 +79,13 @@ function render() {
     const sheet = app.ui.sheet && SHEETS[app.ui.sheet.type] ? SHEETS[app.ui.sheet.type](app) : '';
     html = shell(ROUTES[app.route](app)) + sheet;
   }
+  const enteringWeek = app.route === 'week' && root.dataset.route !== 'week';
   root.innerHTML = html;
   root.dataset.route = app.route;
+  // Phone: the seven days scroll sideways; open on today, like the personal system's week page.
+  const todayCard = root.querySelector('.day.today');
+  const strip = todayCard?.parentElement;
+  if (enteringWeek && strip && strip.scrollWidth > strip.clientWidth) strip.scrollLeft = todayCard.offsetLeft - strip.offsetLeft - 16;
   document.body.dataset.route = app.route;
   const next = root.querySelector('.main');
   if (next) next.scrollTop = keep;
@@ -204,12 +210,6 @@ const val = (id) => document.getElementById(id)?.value ?? '';
 const dispatch = (e) => app.store.dispatch(e);
 const lotName = (id) => { const l = app.store.state.lots.get(id); return l ? foodName(l.food, 2, l) : 'Food'; };
 
-async function planChange(days, mode) {
-  const ids = [];
-  for (const d of days) ids.push((await dispatch({ type: 'plan', day: d, mode })).id);
-  app.ui.lastPlanEvent = ids.join(',');
-}
-
 function startScan(img) {
   const a = app.ui.add;
   if (a.scanning) return;
@@ -282,25 +282,25 @@ const ACT = {
     const e = await dispatch({ type: 'toss', lot: id });
     toast(`${name} removed.`, e.id);
   },
-  async 'plan-add'(arg) { const [lot, day] = split(arg); await dispatch({ type: 'plan.add', lot, day }); toast(`${lotName(lot)} added to ${day === app.store.today ? 'today' : 'that day'}.`); },
-  async 'plan-move'(arg) { const [lot, day] = split(arg); await dispatch({ type: 'plan.add', lot, day }); toast(`${lotName(lot)} moved.`); },
-  async 'plan-change'(what) {
-    const today = app.store.today;
-    app.ui.sheet = null;
-    if (what === 'plan') { go('plan'); return; }
-    if (what === 'away') await planChange([today, addDays(today, 1), addDays(today, 2)], 'out');
-    else await planChange([today], what);
+  async 'out-day'(day) {
+    const on = modeOf(app.store.state, day) !== 'out';
+    const e = await dispatch({ type: 'plan', day, mode: on ? 'out' : 'cook' });
+    toast(on ? `${day === app.store.today ? 'Tonight' : 'That night'}: eating out. Reminders move to the next day.` : 'Back to eating at home.', e.id);
   },
-  async out() {
-    const today = app.store.today;
-    const on = modeOf(app.store.state, today) !== 'out';
-    await planChange([today], on ? 'out' : 'cook');
+  out() { return ACT['out-day'](app.store.today); },
+  'week-move'(n) { app.ui.weekOffset = Number(n) === 0 ? 0 : (app.ui.weekOffset || 0) + Number(n); render(); },
+  async qty(arg) {
+    const [lot, n] = split(arg);
+    const name = lotName(lot);
+    const q = Math.max(0, Number(n));
+    if (q === 0 && app.ui.sheet?.type === 'lot') app.ui.sheet = null;
+    const e = await dispatch({ type: 'qty', lot, qty: q });
+    if (q === 0) toast(`${name}: all gone.`, e.id);
   },
   async later() { await dispatch({ type: 'snooze', until: addDays(app.store.today, 1) }); toast('Reminder moved to tomorrow.'); },
   'lock-dismiss'() { app.ui.lockDismissed = true; render(); },
   async undo(arg) {
     for (const id of split(arg).join(',').split(',').filter(Boolean)) await dispatch({ type: 'undo', target: id });
-    if (app.ui.lastPlanEvent && arg.includes(app.ui.lastPlanEvent.split(',')[0])) app.ui.lastPlanEvent = null;
     app.ui.toast = null;
     render();
   },
@@ -575,8 +575,6 @@ const CHANGE = {
     await dispatch({ type: 'move', lot: arg, place: pl.id, spot: spotFor(l.food, l.owner, app.store.persona, pl) });
   },
   async 'lot-spot'(arg, v) { const l = app.store.state.lots.get(arg); if (l) await dispatch({ type: 'move', lot: arg, place: l.place, spot: v }); },
-  async 'plan-mode'(day, v) { await planChange([day], v); },
-  async 'plan-loose'(lot, day) { if (day) await dispatch({ type: 'plan.add', lot, day }); },
   'place-name'(id, v) { if (v.trim()) dispatch({ type: 'place.edit', id, name: v.trim() }); },
   'place-kind'(id, v) { dispatch({ type: 'place.edit', id, kind: v }); },
   'place-full'(id, v) { dispatch({ type: 'place.edit', id, full: Number(v), src: 'hand' }); },

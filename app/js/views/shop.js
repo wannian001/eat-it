@@ -1,5 +1,6 @@
 // Shopping (v0.2): a list shared with housemates, checks before you buy what you already have or
 // can't fit, and when you and a housemate are both free. Optional, like the plan (Brief O1).
+
 import { food, foodName, matchFood } from '../foods.js';
 import { countOf, lotsOf, firstOfKind, hasFreezer } from '../state.js';
 import { fmtDay, dateTag } from '../dates.js';

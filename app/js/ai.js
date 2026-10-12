@@ -6,6 +6,7 @@
 //
 // Whatever comes back is checked against the food at home; if the server fails or answers nonsense,
 // the built-in reader is used, so the screen never gets stuck.
+
 import { CONFIG } from './config.js';
 import { parseAte } from './parse.js';
 

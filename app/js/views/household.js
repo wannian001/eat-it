@@ -1,5 +1,6 @@
 // Household & settings + account (v0.2 "Sharing & settings" and "Account" on one page),
 // plus the user switcher on the phone and the widget and lock-screen previews.
+
 import { ICON, placeIcon, wordmark } from '../icons.js';
 import { esc, pageHead, secHead, toggle, aiBadge } from '../ui.js';
 import { phoneTitle } from './parts.js';

@@ -1,7 +1,7 @@
 // The two users the app ships with, and the template for new ones. John and May are the personas
 // from the group's fieldwork report (fictional; every food, date, price and name here is made up).
 // They are ordinary users: real date, their own saved data. Their starting fridge follows the hi-fi
-// canvas v3; the cupboard, week plan, shopping list, receipts and settings come from the v0.2
+// canvas v3; the cupboard, shopping list, receipts and settings come from the v0.2
 // prototype. It is written for SEED_DAY and moved to the day each user is first opened (users.js).
 
 import { food as foodOf } from './foods.js';
@@ -10,7 +10,6 @@ export const SEED_DAY = '2026-10-10';
 const DAY = SEED_DAY;
 
 const put = (id, day, lines) => ({ id, type: 'put', day, lines, seed: true });
-const plan = (day, lot) => ({ id: `plan-${day}-${lot}`, type: 'plan.add', day, lot, seed: true });
 const mode = (day, m) => ({ id: `mode-${day}`, type: 'plan', day, mode: m, seed: true });
 const est = (on) => ({ kind: 'est', on });
 const estDays = (days) => ({ kind: 'est', days });
@@ -61,12 +60,6 @@ export const BUILTIN = {
         { food: 'tomato', qty: 4, unit: 'pc', place: 'fridge', spot: 'crisper', date: est('2026-10-17') },
         { food: 'broccoli', qty: 1, unit: 'pc', place: 'fridge', spot: 'crisper', date: est('2026-10-15') },
       ]),
-      plan('2026-10-10', 'john-1008:0'), plan('2026-10-10', 'john-1008:2'),
-      plan('2026-10-11', 'john-1003:0:0'),
-      plan('2026-10-12', 'john-0912:0:0'), plan('2026-10-12', 'john-1004:6'),
-      plan('2026-10-13', 'john-1004:4'),
-      plan('2026-10-14', 'john-1008:4'),
-      plan('2026-10-15', 'john-0930:0'), plan('2026-10-15', 'john-1008:3'),
     ],
     // What the simulated "AI scan" of the bench returns: the 7 lines on canvas board 03.
     photo: { when: DAY, lines: [
@@ -136,9 +129,6 @@ export const BUILTIN = {
         { food: 'mushrooms', qty: 200, unit: 'g', place: 'fridge', spot: 'crisper', date: est('2026-10-13') },
         { food: 'bread', qty: 1, unit: 'pc', place: 'pantry', date: bb('2026-10-12'), amount: 'Half' },
       ]),
-      plan('2026-10-10', 'may-1009:0'), plan('2026-10-10', 'may-1009:3'), plan('2026-10-10', 'may-1009:6'),
-      plan('2026-10-11', 'may-1009:4'),
-      plan('2026-10-12', 'may-1009:2'),
       mode('2026-10-13', 'out'),
     ],
     photo: { when: DAY, lines: [

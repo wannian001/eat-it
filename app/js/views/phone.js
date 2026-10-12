@@ -1,5 +1,6 @@
 // Boards 05 and 06: what the app looks like outside the app. A web page can't put real widgets on
 // an iPhone, so these are live previews drawn from the same fridge; taps here change the fridge.
+
 import { food, foodName, shortName } from '../foods.js';
 import { eatFirst, oldestFrozen, frozenLots, bagNumber, nudge, modeOf } from '../state.js';
 import { urgency, frozenWeeks, frozenFor, longDay, dot } from '../dates.js';

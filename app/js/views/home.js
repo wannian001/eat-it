@@ -1,11 +1,11 @@
-// Home. Phone: boards 01/02 (open fridge + Eat first), then Tonight and Needs a look.
-// Desktop: the v0.2 "Today" page — greeting, fridge on the left, Tonight / Needs a look / Room at home on the right.
-import { foodName } from '../foods.js';
+// Home. Phone: boards 01/02 (open fridge + Eat first), then Today and Needs a look.
+// Desktop: the v0.2 "Today" page — greeting, fridge on the left, Today / Needs a look / Room at home on the right.
 
+import { foodName } from '../foods.js';
 import { fmtDay, greeting, dateTag } from '../dates.js';
 import { ICON, appIcon } from '../icons.js';
 import { esc, pic, pageHead, secHead, label } from '../ui.js';
-import { homePicture, eatFirstHtml, tonightHtml, needsLook, roomBars, moveBanner, shelfGroups } from './parts.js';
+import { homePicture, eatFirstHtml, todayHtml, needsLook, roomBars, shelfGroups } from './parts.js';
 
 export function phoneHeader(app, title) {
   const { store, ui } = app;
@@ -63,7 +63,7 @@ export function homePage(app) {
         ${picture}
       </div>
       <div class="stack">
-        <section>${secHead(hr >= 15 ? 'Tonight' : 'Today')}${moveBanner(app)}${tonightHtml(app)}</section>
+        <section>${secHead(hr >= 15 ? 'Tonight' : 'Today')}${todayHtml(app)}</section>
         <section>${secHead('Needs a look')}${needsLook(app)}</section>
         <section class="desk-only">${secHead('Room at home', '<button class="link" data-act="sheet" data-arg="places">Update</button>')}<div class="card flush">${roomBars(app)}</div></section>
       </div>

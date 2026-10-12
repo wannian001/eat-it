@@ -1,5 +1,6 @@
 // Setting up a new user (v0.2 sign-up, without the email code): name, where you keep food, then
 // whether you share a kitchen. John and May come set up already.
+
 import { ICON, appIcon, wordmark } from '../icons.js';
 import { esc } from '../ui.js';
 

@@ -1,4 +1,4 @@
-// Nothing in the app is stored directly. Everything — the food, places, the week plan, the
+// Nothing in the app is stored directly. Everything — the food, places, eating-out days, the
 // shopping list, settings — is rebuilt by replaying an append-only list of events, the same idea
 // as the owner's personal food log. Correcting a mistake means adding an event ("undo" names the
 // event it cancels), never editing an old one.
@@ -17,8 +17,8 @@
 //   thaw     { lot, place, spot }                 out of the freezer into the fridge
 //   move     { lot, place, spot }
 // Plan, shopping, home
-//   plan     { day, mode: cook|out|busy }         food planned that day moves to the next cooking day
-//   plan.add { day, lot }
+//   plan     { day, mode: cook|out }              "Out tonight": eating out that day
+//   qty      { lot, qty }                         set how many are left (0 = gone)
 //   snooze   { until }
 //   shop.add { id, name, own, who } · shop.done { id } · shop.claim { id, who }
 //   place.add { id, name, kind } · place.edit { id, name?, kind?, full?, src? } · place.remove { id, moveTo }
@@ -30,14 +30,14 @@
 //   undo     { target }
 
 import { FOODS, food as foodOf } from './foods.js';
-import { addDays, urgency, kindOrder, daysBetween, lastGood } from './dates.js';
+import { addDays, urgency, kindOrder, daysBetween } from './dates.js';
 
 const THAWED_DAYS = 1; // our guess, shown dashed like every estimate
 const clone = (x) => JSON.parse(JSON.stringify(x ?? null));
 
 export function emptyState(persona) {
   return {
-    lots: new Map(), splits: {}, puts: {}, fresh: new Set(), lastMove: null,
+    lots: new Map(), splits: {}, puts: {}, fresh: new Set(), history: {},
     places: clone(persona.places) || [],
     plan: {}, snoozeUntil: null, thawedOn: null,
     shop: clone(persona.shop) || [],
@@ -54,8 +54,6 @@ export function replay(events, persona) {
   const s = emptyState(persona);
   const undone = new Set(events.filter((e) => e.type === 'undo').map((e) => e.target));
   for (const e of events) if (!undone.has(e.id) && e.type !== 'undo') apply(s, e);
-  // Food that is gone can't stay on the plan.
-  for (const d of Object.values(s.plan)) d.lots = d.lots.filter((id) => s.lots.has(id));
   return s;
 }
 
@@ -64,41 +62,45 @@ export const firstOfKind = (s, kind) => s.places.find((p) => p.kind === kind) ||
 export const hasFreezer = (s) => !!firstOfKind(s, 'frozen');
 const isFrozenPlace = (s, id) => placeOf(s, id)?.kind === 'frozen';
 
-export function planDay(s, day) {
-  if (!s.plan[day]) s.plan[day] = { mode: 'cook', lots: [] };
-  return s.plan[day];
+// What happened on each day, for the week calendar ("Ate", "Added", …).
+function note(s, day, entry) {
+  (s.history[day] ||= []).push(entry);
 }
+const nameOf = (l) => ({ food: l.food, name: l.name || null });
 
 export function apply(s, e) {
   // "fresh" = lots the user just put in, so the screen can show them arriving. Seeds never count.
   s.fresh = new Set();
-  if (e.type !== 'plan') s.lastMove = null;
   const lot = e.lot ? s.lots.get(e.lot) : null;
   switch (e.type) {
     case 'put': return put(s, e);
-    case 'use': return lot && use(s, lot, e.how);
-    case 'toss': s.lots.delete(e.lot); return;
-    case 'ate': for (const it of e.items || []) consume(s, it); return;
+    case 'use': if (lot) { note(s, e.day, { kind: 'use', how: e.how, ...nameOf(lot) }); use(s, lot, e.how); } return;
+    case 'qty':
+      if (!lot) return;
+      note(s, e.day, { kind: 'qty', from: units(lot), to: e.qty, ...nameOf(lot) });
+      if (e.qty <= 0) s.lots.delete(e.lot); else if (lot.unit === 'pc') lot.qty = e.qty;
+      return;
+    case 'toss': if (lot) note(s, e.day, { kind: 'toss', ...nameOf(lot) }); s.lots.delete(e.lot); return;
+    case 'ate':
+      for (const it of e.items || []) {
+        const taken = consume(s, it);
+        note(s, e.day, { kind: 'ate', food: it.food, qty: it.qty, unit: it.unit, part: it.part, left: it.left, taken });
+      }
+      return;
     case 'fix': if (lot?.date) lot.date = { ...lot.date, on: e.on, guess: false }; return;
     case 'date': if (lot) lot.date = { ...e.date }; return;
-    case 'amount': if (lot) lot.amount = e.value; return;
+    case 'amount': if (lot) { lot.amount = e.value; note(s, e.day, { kind: 'amount', value: e.value, ...nameOf(lot) }); } return;
     case 'open': if (lot) lot.opened = e.day; return;
     case 'freeze':
-      if (lot && placeOf(s, e.place)) Object.assign(lot, { place: e.place, spot: null, bag: true, date: { kind: 'frozen', on: e.day } });
+      if (lot && placeOf(s, e.place)) { Object.assign(lot, { place: e.place, spot: null, bag: true, date: { kind: 'frozen', on: e.day } }); note(s, e.day, { kind: 'freeze', ...nameOf(lot) }); }
       return;
     case 'thaw':
-      if (lot && isFrozenPlace(s, lot.place)) Object.assign(lot, { place: e.place, spot: e.spot || null, date: { kind: 'est', on: addDays(e.day, THAWED_DAYS) }, thawed: true });
+      if (lot && isFrozenPlace(s, lot.place)) { Object.assign(lot, { place: e.place, spot: e.spot || null, date: { kind: 'est', on: addDays(e.day, THAWED_DAYS) }, thawed: true }); note(s, e.day, { kind: 'thaw', ...nameOf(lot) }); }
       s.thawedOn = e.day;
       return;
     case 'move': if (lot && placeOf(s, e.place)) Object.assign(lot, { place: e.place, spot: e.spot ?? null }); return;
-    case 'plan': setMode(s, e.day, e.mode); if (e.seed) s.lastMove = null; return;
-    case 'out': return setMode(s, e.day, e.on ? 'out' : 'cook');
-    case 'plan.add': {
-      if (!s.lots.has(e.lot)) return;
-      for (const d of Object.values(s.plan)) d.lots = d.lots.filter((id) => id !== e.lot);
-      planDay(s, e.day).lots.push(e.lot);
-      return;
-    }
+    case 'plan': s.plan[e.day] = { mode: e.mode === 'cook' ? 'cook' : 'out' }; return;
+    case 'out': s.plan[e.day] = { mode: e.on ? 'out' : 'cook' }; return;
     case 'snooze': s.snoozeUntil = e.until; return;
     case 'shop.add': s.shop.push({ id: e.id, name: e.name, own: e.own || 'mine', who: e.who ?? null, done: false }); return;
     case 'shop.done': { const it = s.shop.find((x) => x.id === e.id); if (it) it.done = !it.done; return; }
@@ -147,6 +149,7 @@ function lineDate(line, day) {
 
 function put(s, e) {
   const mark = (id) => { if (!e.seed) s.fresh.add(id); };
+  note(s, e.day, { kind: 'put', count: (e.lines || []).length, source: e.source || null });
   if (e.source) s.done[e.source] = true;
   (e.lines || []).forEach((line, i) => {
     const base = { food: line.food, name: line.name || null, cat: line.cat || null, owner: line.owner || 'me', addedOn: e.day, tip: line.tip || null, amount: line.amount || null };
@@ -215,24 +218,6 @@ export function consume(s, { food, qty = 1, unit, part, left: remains }) {
   return taken;
 }
 
-// Not cooking that day: its food moves to the next day you will, soonest first (v0.2 week plan).
-function setMode(s, day, mode) {
-  const d = planDay(s, day);
-  d.mode = mode;
-  if (mode === 'cook') { s.lastMove = { day, mode, moved: [] }; return; }
-  const moved = [];
-  for (const id of d.lots.splice(0)) {
-    let to = null;
-    for (let i = 1; i <= 14; i++) {
-      const x = addDays(day, i);
-      if ((s.plan[x]?.mode || 'cook') === 'cook') { to = x; break; }
-    }
-    if (to) planDay(s, to).lots.push(id);
-    moved.push({ lot: id, to });
-  }
-  s.lastMove = { day, mode, moved };
-}
-
 export const units = (l) => (l.unit === 'pc' ? l.qty : 1);
 
 export function countOf(s, foodId) {
@@ -295,7 +280,7 @@ export function usual(s, n = 4, fallback = ['milk', 'spinach', 'eggs', 'bread'])
 export const modeOf = (s, day) => s.plan[day]?.mode || 'cook';
 
 // Should the oldest frozen bag nudge the user today? At most one nudge a day (Brief C3), and none
-// after a bag was thawed today, on a day you're not cooking, or while snoozed.
+// after a bag was thawed today, on a day you're eating out, or while snoozed.
 export function nudge(s, today, minWeeks = 4) {
   const lot = oldestFrozen(s);
   if (!lot) return null;
@@ -304,33 +289,3 @@ export function nudge(s, today, minWeeks = 4) {
   return daysBetween(lot.date.on, today) >= minWeeks * 7 ? lot : null;
 }
 
-// Which upcoming day a lot is planned for, if any.
-export function plannedDay(s, lotId, today) {
-  const days = Object.keys(s.plan).filter((d) => d >= today && s.plan[d].lots.includes(lotId)).sort();
-  return days[0] || null;
-}
-
-// Food that will go off before the day it's planned for (after plans changed).
-export function planWarnings(s, today) {
-  const out = [];
-  for (const [day, d] of Object.entries(s.plan)) {
-    if (day < today) continue;
-    for (const id of d.lots) {
-      const l = s.lots.get(id);
-      const lg = lastGood(l?.date);
-      if (l && lg && lg < day) out.push({ lot: l, day });
-    }
-  }
-  return out;
-}
-
-// Latest cooking day on or before the food's last good day, so it still gets eaten.
-export function rescueDay(s, lot, today, horizon = 7) {
-  const lg = lastGood(lot.date);
-  if (!lg) return null;
-  for (let i = Math.min(daysBetween(today, lg), horizon - 1); i >= 0; i--) {
-    const d = addDays(today, i);
-    if (modeOf(s, d) === 'cook') return d;
-  }
-  return null;
-}

@@ -1,5 +1,6 @@
 // Users on this device: John and May come with the app, anyone else is added here. There are no
 // passwords (prototype); picking a user signs in as them, and each user's data is kept separately.
+
 import { BUILTIN, SEED_DAY, blankUser } from './seed.js';
 import { prefs } from './store.js';
 import { todayLocal, addDays, daysBetween } from './dates.js';

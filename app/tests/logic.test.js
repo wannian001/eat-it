@@ -6,7 +6,8 @@ import http from 'node:http';
 import { dateTag, urgency, addDays, daysBetween } from '../js/dates.js';
 import { parseAte } from '../js/parse.js';
 import { matchFood } from '../js/foods.js';
-import { replay, eatFirst, countOf, nudge, oldestFrozen, bagNumber, lastSplit, modeOf, planWarnings, plannedDay } from '../js/state.js';
+import { replay, eatFirst, countOf, nudge, oldestFrozen, bagNumber, lastSplit, modeOf } from '../js/state.js';
+import { weekDays } from '../js/views/week.js';
 import { BUILTIN, blankUser } from '../js/seed.js';
 import { shiftDates } from '../js/users.js';
 import { openStore, httpAdapter, memoryAdapter } from '../js/store.js';
@@ -84,14 +85,34 @@ test('splitting into bags freezes them and remembers the split', () => {
   assert.equal(s.fresh.size, 2);
 });
 
-test('Eating out tonight moves today\'s food to the next cooking day and warns', () => {
-  const s = may(ev('plan', { day: TODAY, mode: 'out' }));
-  assert.equal(s.lastMove.moved.length, 3);
-  assert.ok(s.lastMove.moved.every((m) => m.to === '2026-10-11'));
-  assert.equal(plannedDay(s, 'may-1009:0', TODAY), '2026-10-11');
-  // Spinach is best before today, so it may not last until Sunday.
-  assert.ok(planWarnings(s, TODAY).some((w) => w.lot.food === 'spinach'));
-  assert.equal(nudge(john(ev('plan', { day: TODAY, mode: 'out' })), TODAY), null);
+test('eating out marks the day and holds the freezer nudge', () => {
+  const s = john(ev('plan', { day: TODAY, mode: 'out' }));
+  assert.equal(modeOf(s, TODAY), 'out');
+  assert.equal(nudge(s, TODAY), null);
+  assert.equal(modeOf(may(), '2026-10-13'), 'out');
+});
+
+test('fixing stock by hand: set a count, or all gone', () => {
+  const s = john(ev('qty', { lot: 'john-1004:1', qty: 2 }));
+  assert.equal(countOf(s, 'eggs'), 2);
+  const t = john(ev('qty', { lot: 'john-1004:0', qty: 0 }));
+  assert.equal(countOf(t, 'milk'), 0);
+  assert.deepEqual(t.history[TODAY].map((h) => [h.kind, h.food, h.to]), [['qty', 'milk', 0]]);
+  const u = john(ev('qty', { lot: 'john-1004:1', qty: 5 }), ev('qty', { lot: 'john-1004:1', qty: 4 }));
+  assert.deepEqual(weekDays({ store: { state: u, today: TODAY } }).find((d) => d.isToday).ate, ['Eggs: 6 \u2192 4']);
+});
+
+test('the week calendar shows what is due each day and what was eaten', () => {
+  const s = john(ev('ate', { items: [{ food: 'tomato', qty: 2, exact: true }, { food: 'curry', left: 'none' }] }));
+  const app = { store: { state: s, today: TODAY } };
+  const days = weekDays(app);
+  assert.equal(days.length, 7);
+  assert.equal(days[0].date, '2026-10-05'); // Monday
+  const sat = days.find((d) => d.date === TODAY);
+  assert.ok(sat.isToday);
+  assert.deepEqual(sat.ate, ['Tomatoes \u22122', 'Curry: all gone']);
+  const sun = days.find((d) => d.date === '2026-10-11');
+  assert.deepEqual(sun.due.map((l) => l.food), ['milk']);
 });
 
 test('undo cancels exactly one event', () => {
