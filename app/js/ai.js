@@ -8,17 +8,17 @@
 // the built-in reader is used, so the screen never gets stuck.
 
 import { CONFIG } from './config.js';
-import { parseAte } from './parse.js';
+import { parseAte, mergeItems } from './parse.js';
 
-const clean = (items, known) => (Array.isArray(items) ? items : [])
+// Only a positive number in a unit the app knows (none, bag, pc) counts as exact; anything else
+// (500 g, −3, "lots") becomes a question about how much is left instead of taking food.
+const clean = (items, known) => mergeItems((Array.isArray(items) ? items : [])
   .filter((it) => it && typeof it.food === 'string' && known.has(it.food))
-  .map((it) => ({
-    food: it.food,
-    qty: Number.isFinite(+it.qty) && +it.qty > 0 ? +it.qty : 1,
-    unit: it.unit === 'bag' || it.unit === 'pc' ? it.unit : null,
-    part: !!it.part,
-    exact: !!it.exact && !it.part,
-    spans: [],
+  .map((it) => {
+    const n = typeof it.qty === 'number' ? it.qty : NaN;
+    const unitOk = it.unit == null || it.unit === 'bag' || it.unit === 'pc';
+    const exact = !!it.exact && !it.part && unitOk && Number.isFinite(n) && n > 0;
+    return { food: it.food, qty: exact ? n : 1, unit: exact ? it.unit ?? null : null, part: !!it.part || !exact, exact, spans: [] };
   }));
 
 export async function understand(text, stock, { endpoint = CONFIG.ai, fetchImpl = globalThis.fetch } = {}) {

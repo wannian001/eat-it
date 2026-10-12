@@ -88,11 +88,12 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .seg button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; font: 700 15px var(--font-body); white-space: nowrap; }
 .seg button.on, .seg-primary { background: var(--leaf); }
 .seg.small button { min-height: 36px; padding: 0 14px; font-size: 13px; }
-.seg[role=tablist] { flex-wrap: wrap; border-radius: 18px; }
+.seg[role=tablist] { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: none; border-radius: 18px; }
+.seg[role=tablist] button { flex: none; }
 .seg[role=tablist] button.on { background: var(--white); box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 15%, transparent); }
 .toast {
-  position: fixed; z-index: 30; left: 50%; bottom: calc(140px + env(safe-area-inset-bottom)); transform: translateX(-50%);
-  display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 32px);
+  position: fixed; z-index: 30; left: 16px; right: 16px; bottom: calc(140px + env(safe-area-inset-bottom)); margin: 0 auto; width: fit-content;
+  display: flex; align-items: center; gap: 14px; max-width: min(480px, calc(100vw - 32px));
   padding: 10px 12px 10px 18px; border-radius: 16px; background: var(--ink); color: var(--white); font: 700 14px var(--font-body);
   box-shadow: var(--shadow); animation: rise .25s ease-out;
 }
@@ -127,7 +128,7 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 
 /* ---------- layout ---------- */
 .page { padding: 0 0 8px; }
-.page > section, .page > .card, .page > .banner, .page > .toolbar, .page > .vtools, .page > .rows, .page > .weekwrap { margin-left: 16px; margin-right: 16px; }
+.page > section, .page > .card, .page > .toolbar, .page > .vtools, .page > .rows, .page > .sec-h { margin-left: 16px; margin-right: 16px; }
 .cols2 { display: grid; gap: 22px; padding: 0 16px; }
 .stack { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
 .home .cols2 { padding: 0; }
@@ -182,6 +183,7 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .ef-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .ef-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; min-height: 104px; background: var(--white); border: 0; border-radius: 16px; }
 .ef-name { font: 700 13px/1.2 var(--font-body); text-align: center; }
+.ef-card .tag { max-width: 100%; white-space: normal; text-align: center; line-height: 1.15; }
 
 /* ---------- the fridge (boards 01/02) ---------- */
 .fridge { margin: 0 16px 12px; padding: 7px; display: flex; flex-direction: column; gap: 7px; background: var(--shelf); border-radius: 28px; }
@@ -226,6 +228,14 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .home-grid { display: flex; flex-direction: column; }
 .h-today { padding: 0 16px; margin-top: 4px; }
 .h-empty { margin: 0 16px 14px; }
+.guide { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; background: var(--wash); border-color: transparent; }
+.guide ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.guide li { display: flex; align-items: center; gap: 12px; }
+.guide li > span:last-child { display: flex; flex-direction: column; }
+.guide b { font: 800 15px var(--font-title); }
+.guide small { font-size: 13px; color: var(--stone); }
+.g-ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--leaf); color: var(--ink); flex: none; }
+.guide .btn { align-self: flex-start; }
 .today-card { display: flex; flex-direction: column; gap: 10px; background: var(--wash); border-color: transparent; }
 .today-card .meal.ask { padding: 0; background: none; }
 .thaw-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
@@ -250,6 +260,7 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .vtools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .search { flex: 1; min-width: 180px; display: flex; align-items: center; gap: 8px; padding: 0 12px; min-height: 44px; border: 1.5px solid var(--line); border-radius: 14px; color: var(--stone); background: var(--white); }
 .search input { flex: 1; min-width: 0; border: 0; min-height: 40px; padding: 0; outline: none; color: var(--ink); }
+.search:focus-within, .cam-side:focus-within, .filebtn:focus-within { outline: 3px solid var(--leaf-deep); outline-offset: 2px; }
 .viz-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 16px 10px; font-size: 13px; }
 .viz-h span { display: inline-flex; align-items: center; gap: 6px; }
 .viz .fridge, .viz .cab { margin-left: 16px; margin-right: 16px; }
@@ -274,11 +285,6 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .lock-tag { display: inline-flex; align-items: center; gap: 4px; font: 700 11px var(--font-body); color: var(--stone); }
 
 /* ---------- Tonight / Needs a look / Room ---------- */
-.pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
-.pill-food { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px 0 6px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--white); font: 700 13px var(--font-body); }
-.banner { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; padding: 12px 14px; border-radius: 16px; background: var(--leaf-soft); }
-.banner p { font-size: 14px; }
-.warn-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 10px; border-radius: 12px; background: var(--amber-soft); color: var(--amber-text); font-size: 13px; }
 .room { list-style: none; margin: 0; padding: 4px 14px; }
 .room li { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .room li:first-child { border-top: 0; }
@@ -309,6 +315,12 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .cam-count::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--sprout); }
 .cam-view { position: relative; flex: 1; padding: 6px 16px; overflow: hidden; }
 .cam-view.has-photo { background: var(--photo) center / cover no-repeat; }
+.cam-feed { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--ink); }
+.cam-guide { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); border: 3px solid var(--white); border-radius: 18px; box-shadow: 0 0 0 999px color-mix(in srgb, var(--ink) 28%, transparent); pointer-events: none; }
+.cam-guide.g-photo { width: 78%; height: 62%; border-style: dashed; box-shadow: none; }
+.cam-guide.g-receipt { width: 58%; height: 78%; }
+.cam-guide.g-barcode { width: 76%; height: 24%; }
+.cam-feed ~ .scanline { left: 12%; right: 12%; top: 46%; }
 .boxes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px 10px; align-content: start; padding-top: 4px; }
 .box { position: relative; display: grid; place-items: center; height: 86px; border: 2.5px solid var(--leaf); border-radius: 18px; background: color-mix(in srgb, var(--white) 22%, transparent); }
 .box-lg, .box-md { grid-column: span 3; }
@@ -496,7 +508,7 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .wk-food:hover { background: var(--mist); }
 .wk-food .pic, .wk-line .pic { flex: none; }
 .wf-text { display: flex; flex-direction: column; min-width: 0; }
-.wf-text b { font: 700 13px/1.25 var(--font-body); overflow-wrap: anywhere; }
+.wf-text b { font: 700 13px/1.25 var(--font-body); overflow-wrap: break-word; hyphens: auto; }
 .wf-text small { font: 700 11px/1.3 var(--font-body); color: var(--stone); }
 .meal { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%; }
 .meal p { font-size: 13px; }
@@ -524,11 +536,7 @@ button.day-head { cursor: pointer; }
 .wk-meal.done { color: var(--leaf-deep); }
 .wk-meal.out { color: var(--ink); }
 .meal-note { font-size: 12.5px; color: var(--stone); }
-.today-meal { margin-top: 12px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--leaf-deep) 18%, transparent); }
-.today-meal .meal.ask { padding: 0; background: none; }
 .card .link { margin-top: 6px; }
-.out-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--white); font: 700 12px var(--font-body); color: var(--stone); white-space: nowrap; }
-.out-toggle.on { background: var(--amber-soft); border-color: var(--amber); color: var(--amber-text); }
 
 /* ---------- shopping ---------- */
 .slist { list-style: none; margin: 0; padding: 0; }
@@ -596,7 +604,6 @@ button.day-head { cursor: pointer; }
 .datebox-h { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .datebox-h small { color: var(--stone); font-size: 12px; }
 .datebox .chip-btn { margin-top: 8px; }
-.plan-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
 .where { display: flex; gap: 10px; flex-wrap: wrap; }
 .where .fld span { white-space: nowrap; }
 .sheet-sec h3 { margin: 0 0 6px; font: 700 13px var(--font-body); color: var(--stone); }
@@ -612,10 +619,6 @@ button.day-head { cursor: pointer; }
 .stepper { display: inline-flex; align-items: center; gap: 6px; }
 .step { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--line); background: var(--white); }
 .stepper.sm .step { width: 30px; height: 30px; }
-.opts { display: flex; flex-direction: column; gap: 8px; }
-.opt { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 14px; text-align: left; border: 1.5px solid var(--line); border-radius: 16px; background: var(--white); }
-.opt b { font: 800 16px var(--font-title); }
-.opt small { color: var(--stone); }
 .places { display: flex; flex-direction: column; gap: 10px; }
 .place-row { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1.5px solid var(--line); border-radius: 16px; }
 .pr-top, .pr-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -743,7 +746,7 @@ button.day-head { cursor: pointer; }
   .main { min-width: 0; padding: 32px 40px 48px; }
   .shell.full .main, .shell.no-tabs .main { padding: 32px 40px 48px; height: auto; }
   .page { max-width: 1160px; margin: 0 auto; padding: 0; }
-  .page > section, .page > .card, .page > .banner, .page > .toolbar, .page > .vtools, .page > .rows, .page > .weekwrap { margin-left: 0; margin-right: 0; }
+  .page > section, .page > .card, .page > .toolbar, .page > .vtools, .page > .rows, .page > .sec-h { margin-left: 0; margin-right: 0; }
   .cols2, .home .cols2 { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; padding: 0; align-items: start; }
   .home-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); grid-template-areas: "fridge eat" "fridge today"; grid-template-rows: auto 1fr; gap: 0 28px; align-items: start; }
   .h-eat { grid-area: eat; }
@@ -786,7 +789,7 @@ button.day-head { cursor: pointer; }
   .day { min-height: 240px; padding: 14px 12px; }
   .day h2 { font-size: 17px; }
   .device-stage { display: flex !important; flex-direction: column; align-items: center; gap: 14px; }
-  .device-stage > .screen { width: 390px; height: 780px; min-height: 0; border-radius: 44px; overflow: hidden; box-shadow: 0 0 0 10px var(--white), 0 0 0 11px var(--line), 0 30px 60px -20px color-mix(in srgb, var(--ink) 30%, transparent); }
+  .device-stage > .screen { width: 390px; height: min(780px, calc(100vh - 120px)); min-height: 560px; min-height: 0; border-radius: 44px; overflow: hidden; box-shadow: 0 0 0 10px var(--white), 0 0 0 11px var(--line), 0 30px 60px -20px color-mix(in srgb, var(--ink) 30%, transparent); }
   .device-stage .ate-body.center { padding-bottom: 40px; }
   .stage-note { max-width: 420px; text-align: center; color: var(--stone); font-size: 13px; }
   .sheet-wrap { align-items: stretch; justify-content: flex-end; }
@@ -797,12 +800,20 @@ button.day-head { cursor: pointer; }
   @keyframes slide { from { transform: translateX(40px); opacity: 0; } }
 }
 
+@media (min-width: 900px) {
+  .guide { flex-direction: row; align-items: center; gap: 24px; }
+  .guide ul { flex: 1; flex-direction: row; gap: 28px; }
+  .guide .btn { align-self: center; }
+}
+
 @media (min-width: 1500px) {
   .days { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }
 
 @media (min-width: 900px) and (max-width: 1180px) {
   .cols2, .home .cols2 { grid-template-columns: minmax(0, 1fr); }
+  .home-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "eat" "today" "fridge"; grid-template-rows: auto; }
+  .days { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .rgrid { grid-template-columns: minmax(0, 1fr); }
   .src { position: static; }
 }

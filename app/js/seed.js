@@ -19,8 +19,7 @@ const none = (note) => ({ kind: 'none', note });
 
 export const BUILTIN = {
   john: {
-    id: 'john', name: 'John', initial: 'J', builtin: true, age: 23, mail: 'john.student@example.com',
-    about: '23 岁 · 一个人住 · 有冰箱和冷冻室 · 一次买一到两周',
+    id: 'john', name: 'John', initial: 'J', builtin: true, mail: 'john.student@example.com',
     places: [
       { id: 'fridge', name: 'Fridge', kind: 'cold', sub: 'all yours', full: 35 },
       { id: 'freezer', name: 'Freezer', kind: 'frozen', sub: '3 drawers', full: 50 },
@@ -90,16 +89,15 @@ export const BUILTIN = {
   },
 
   may: {
-    id: 'may', name: 'May', initial: 'M', builtin: true, age: 21, mail: 'may.student@example.com',
-    about: '21 岁 · 和两个同学合租 · 共用冰箱、没有冷冻室 · 几乎天天买',
+    id: 'may', name: 'May', initial: 'M', builtin: true, mail: 'may.student@example.com',
     places: [
       { id: 'fridge', name: 'Fridge', kind: 'cold', sub: 'your shelf + shared', full: 85 },
       { id: 'pantry', name: 'Cupboard', kind: 'room', sub: 'your half shelf', full: 40 },
     ],
-    house: { name: 'Shared house · 3 people', code: 'SL-4821', mates: [{ name: 'Lily', initial: 'L' }, { name: 'Sam', initial: 'S' }] },
+    house: { name: 'Shared house · 3 people', code: 'EI-4821', mates: [{ name: 'Lily', initial: 'L' }, { name: 'Sam', initial: 'S' }] },
     // Housemates' food only ever shows as a number (Brief §4.4).
     others: [{ who: 'Lily', place: 'fridge', n: 2 }, { who: 'Sam', place: 'fridge', n: 1 }, { who: 'Lily', place: 'pantry', n: 6 }, { who: 'Sam', place: 'pantry', n: 3 }],
-    shelves: [{ name: 'Top shelf', who: 'Lily & Sam', pct: 70 }, { name: 'Shared shelf', who: 'Everyone', pct: 60 }, { name: 'Your shelf', who: 'May', pct: 85 }, { name: 'Crisper', who: 'May', pct: 50 }],
+    shelves: [{ name: 'Top shelf', who: 'Lily & Sam', pct: 70 }, { name: 'Shared shelf', who: 'Everyone', pct: 60 }, { name: 'My shelf', who: 'May', pct: 85 }, { name: 'Crisper', who: 'May', pct: 50 }],
     settings: { summary: true, quiet: true, lockNames: true, shareShelf: true },
     usual: ['milk', 'strawberry', 'yoghurt', 'bread'],
     shop: [
@@ -176,7 +174,7 @@ export function shelvesOf(place, persona) {
   return [{ spot: 'top' }, { spot: 'middle' }, { spot: 'crisper', kind: 'crisper' }];
 }
 
-export const SPOT_NAMES = { top: 'Top shelf', middle: 'Middle shelf', crisper: 'Crisper drawer', shared: 'Shared shelf', mine: 'Your shelf' };
+export const SPOT_NAMES = { top: 'Top shelf', middle: 'Middle shelf', crisper: 'Crisper drawer', shared: 'Shared shelf', mine: 'My shelf' };
 
 // Where a new item goes in a place.
 export function spotFor(foodId, owner, persona, place) {

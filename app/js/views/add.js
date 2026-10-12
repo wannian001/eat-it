@@ -17,8 +17,8 @@ export const usualFoods = (app) => app.store.persona.usual || usual(app.store.st
 const pickable = () => Object.keys(FOODS).filter((f) => !food(f).leftover && food(f).cat !== 'nonfood');
 
 const METHODS = [
-  ['receipt', 'Scan a receipt', 'Best after a big shop. AI reads each line, then you check it.', true, true],
-  ['photo', 'Photo of your food', 'Take one now or pick one from your photos. AI recognises the food.', false, true],
+  ['receipt', 'Scan a receipt', 'Best after a big shop.', true, true],
+  ['photo', 'Photo of your food', 'Snap what you bought.', false, true],
   ['email', 'Receipts from your email', 'AI finds grocery receipts in your inbox. Asks you first.', false, true],
   ['barcode', 'Scan a barcode', 'One item at a time.'],
   ['type', 'Type it in', 'Name, where it goes, done.'],
@@ -28,12 +28,12 @@ const METHOD_ICON = { receipt: 'receipt', photo: 'camera', email: 'mail', barcod
 
 export function waysPage(app) {
   const s = app.store.state;
-  const desc = { email: s.links.email ? 'Connected. New receipts show up under Needs a look.' : null, account: s.links.account ? 'Linked. New online orders show up under Needs a look.' : null };
+  const desc = { email: s.links.email ? 'Connected. Tap to see new receipts.' : null, account: s.links.account ? 'Linked. New online orders come in by themselves.' : null };
   return `<div class="page ways">
     <header class="top phone-only"><button class="round" data-act="go" data-arg="add" aria-label="Back">${ICON.back({ size: 18 })}</button><h1>Add food</h1></header>
-    <div class="desk-only">${pageHead('Add food', 'How did it come in?', 'Whichever way you add food, you can fix it later. Anything AI reads or recognises is checked by you before it goes in.')}</div>
+    <div class="desk-only">${pageHead('Add food', 'How did it come in?', 'AI reads it, you check it.')}</div>
     <div class="mgrid">${METHODS.map(([k, t, d, main, ai]) => `<button class="method${main ? ' main' : ''}" data-act="method" data-arg="${k}"><span class="m-ic">${ICON[METHOD_ICON[k]]({ size: 22 })}</span><b>${esc(k === 'account' && s.links.account ? 'Supermarket account linked' : t)}${ai ? aiBadge : ''}</b><small>${esc(desc[k] || d)}</small></button>`).join('')}</div>
-    <section class="ate-promo"><button class="method" data-act="go" data-arg="ate"><span class="m-ic">${ICON.mic({ size: 22 })}</span><b>Took food out? Say what you ate</b><small>Ten seconds at bedtime instead of logging every meal.</small></button></section>
+    <section class="ate-promo"><button class="method" data-act="go" data-arg="ate"><span class="m-ic">${ICON.mic({ size: 22 })}</span><b>Took food out? Say what you ate</b></button></section>
   </div>`;
 }
 
@@ -49,9 +49,17 @@ export function cameraScreen(app) {
   const src = a.mode === 'receipt' ? p.receipt : a.mode === 'barcode' ? (p.barcode ? { lines: [p.barcode] } : null) : p.photo;
   const lines = src?.lines || [];
   const n = (p.photo ? lines.filter((l) => !l.nonfood).length : 0) + a.picks.length;
-  const hint = !p.photo ? 'Scanner not connected' : a.img ? 'Your photo' : a.mode === 'receipt' ? 'Real receipt goes here' : a.mode === 'barcode' ? 'Point at a barcode' : 'Real photo goes here';
+  // With the real camera on, the view is the live picture plus a frame for the mode; recognising
+  // what's in it is still simulated (the shutter freezes the frame, then the usual results come).
+  const live = ui.camLive && p.photo && !a.img;
+  const hint = !p.photo ? 'Scanner not connected' : a.img ? (a.scanning ? 'Reading…' : 'Your photo')
+    : a.mode === 'receipt' ? (live ? 'Fit the receipt in the frame' : 'Real receipt goes here') : a.mode === 'barcode' ? 'Point at a barcode' : live ? 'Point at your food' : 'Real photo goes here';
   let view;
-  if (!p.photo) {
+  if (live) {
+    view = `<video class="cam-feed" autoplay playsinline muted aria-hidden="true"></video><span class="cam-guide g-${a.mode}" aria-hidden="true"></span>${a.mode === 'photo' ? '' : '<span class="scanline"></span>'}`;
+  } else if (a.img && a.mode !== 'photo') {
+    view = '<span class="scanline"></span>';
+  } else if (!p.photo) {
     view = `<div class="cam-pick" role="group" aria-label="Food">${pickable().map((f) => `<button class="usual-b${a.picks.includes(f) ? ' on' : ''}" data-act="usual" data-arg="${esc(f)}" aria-pressed="${a.picks.includes(f)}" aria-label="${esc(foodName(f, 1))}">${pic(f, { size: 34 })}</button>`).join('')}</div>`;
   } else if (a.mode === 'receipt') {
     view = `<div class="cam-receipt" aria-hidden="true">${receiptPaper(p.receipt, { mini: true })}</div><span class="scanline"></span>`;
@@ -142,7 +150,7 @@ function sourcePanel(app) {
   if (a.src === 'email') {
     const E = p.email;
     const total = E.lines.reduce((t, l) => t + parseFloat(l.price || 0), 0).toFixed(2);
-    return `<div class="mail"><div class="mail-h"><b>${esc(E.from)}</b><span>${esc(fmtDay(E.when))} · ${esc(E.time)}</span></div><p class="mail-s">${esc(E.subject)}</p>${E.lines.map((l) => `<div class="mline"><span>${esc(l.raw)}</span><span>$${esc(l.price)}</span></div>`).join('')}<div class="mline tot"><span>Total</span><span>$${total}</span></div><p class="mail-f">${aiBadge}Read by Eat It!. Only this email was opened.</p></div>`;
+    return `<div class="mail"><div class="mail-h"><b>${esc(E.from)}</b><span>${esc(fmtDay(E.when))} · ${esc(E.time)}</span></div><p class="mail-s">${esc(E.subject)}</p>${E.lines.map((l) => `<div class="mline"><span>${esc(l.raw)}</span><span>$${esc(l.price)}</span></div>`).join('')}<div class="mline tot"><span>Total</span><span>$${total}</span></div><p class="mail-f">${aiBadge}Only this email was opened.</p></div>`;
   }
   if (a.src === 'barcode') return `<div class="shot-ph tall">${pic(p.barcode.food, { size: 96 })}<code>${esc(p.barcode.raw)}</code></div>`;
   if (a.src === 'photo') {
@@ -191,7 +199,7 @@ function lineHtml(app, line, first) {
     </span>`;
   const unsure = line.unsure
     ? `<div class="rq"><span class="hint">${line.unsure.length ? `AI isn't sure: ${esc(foodName(line.food, 2).toLowerCase())} or ${esc(line.unsure.map((x) => foodName(x, 2).toLowerCase()).join(' or '))}?` : 'AI isn\'t sure about this line.'}</span>
-       <span class="chips">${[line.food, ...line.unsure].map((alt, i) => `<button class="chip${line.answer === alt ? ' on' : ''}" data-act="answer" data-arg="${line.key}|${esc(alt)}" aria-pressed="${line.answer === alt}">${i === 0 ? 'Yes' : esc(food(alt).name)}</button>`).join('')}</span></div>`
+       <span class="chips">${[line.food, ...line.unsure].map((alt, i) => `<button class="chip${line.answer === alt ? ' on' : ''}" data-act="answer" data-arg="${line.key}|${esc(alt)}" aria-pressed="${line.answer === alt}">${esc(food(alt).name)}</button>`).join('')}</span></div>`
     : '';
   const nonfood = line.nonfood && !line.keep
     ? `<div class="rq"><span class="hint">AI thinks this isn't food.</span><span class="chips"><button class="chip on" data-act="line-skip" data-arg="${line.key}">Skip it</button><button class="chip" data-act="line-keep" data-arg="${line.key}">It's food</button></span></div>`
@@ -218,9 +226,9 @@ export function reviewPage(app) {
   const n = lines.filter(kept).length;
   const src = ui.add.src;
   const title = src === 'photo' ? 'Check what AI found' : src === 'email' ? 'Check your email receipt' : src === 'receipt' ? 'Check your receipt' : 'New food';
-  const sub = src === 'photo' ? `${aiBadge}recognised these in your photo. AI can mistake one food for another and can't read dates from a photo, so check each one.`
-    : src === 'email' ? `${aiBadge}turned this email into a list. Email receipts don't show use-by dates, so add those from the pack if you can.`
-    : src === 'receipt' ? `${aiBadge}read each line. Where each one goes is a guess. Receipts don't show use-by dates, so add those from the pack if you can.`
+  const sub = src === 'photo' ? `${aiBadge}found these in your photo. Check each one.`
+    : src === 'email' ? `${aiBadge}made this list from your email. Check each line.`
+    : src === 'receipt' ? `${aiBadge}read each line. Check each one; add dates from the pack.`
     : 'Check the list, then put it all in.';
   const btn = ui.add.lines.length ? (need ? `Check ${need} line${need > 1 ? 's' : ''} first` : `Put it all in · ${n}`) : 'Nothing to add';
   return `<div class="page review">

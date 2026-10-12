@@ -1,10 +1,10 @@
-// Pieces several pages share: the open fridge, food tiles, Eat first, Today, Needs a look, Room at home.
+// Pieces several pages share: the open fridge, food tiles, Eat first, Today, Room at home.
 import { food, foodName, shortName } from '../foods.js';
-import { eatFirst, oldestFrozen, units, nudge, placeOf, hasFreezer, mealAnswer, mealSkipped } from '../state.js';
+import { eatFirst, oldestFrozen, units, nudge, hasFreezer, mealAnswer, mealSkipped } from '../state.js';
 import { frozenWeeks, urgency, longDay } from '../dates.js';
 import { shelvesOf } from '../seed.js';
 import { ICON, placeIcon, appIcon } from '../icons.js';
-import { esc, pic, tag, dotHtml, label, amountText } from '../ui.js';
+import { esc, pic, tag, dotHtml, label } from '../ui.js';
 
 
 const lowerFirst = (t) => t.charAt(0).toLowerCase() + t.slice(1);
@@ -79,6 +79,7 @@ export function fridgePicture(app, { places } = {}) {
   for (const c of cold) {
     for (const sh of shelvesOf(c, p)) {
       if (sh.kind === 'locked') {
+        if (!p.house.mates.length) continue;
         const os = othersIn(p, c.id);
         const n = os.reduce((a, o) => a + o.n, 0);
         const names = p.house.mates.map((m) => m.name).join(' & ');
@@ -130,15 +131,6 @@ export function eatFirstHtml(app, { limit = 3 } = {}) {
   </section>`;
 }
 
-// One list row for a lot (Food list, Plan, Needs a look …).
-export function lotRow(app, lot, { meta, right, act = 'lot' } = {}) {
-  const today = app.store.today;
-  const s = app.store.state, p = app.store.persona;
-  const place = placeOf(s, lot.place);
-  const m = meta ?? [amountText(lot), place?.name, p.house ? (lot.owner === 'shared' ? 'Shared' : 'Mine') : null].filter(Boolean).join(' · ');
-  return `<button class="row" data-act="${act}" data-arg="${esc(lot.id)}">${pic(lot.food, { bag: lot.bag, size: 36, lot })}<span class="r-main"><b>${esc(foodName(lot.food, lot.unit === 'pc' ? lot.qty : 1, lot))}</b><small>${esc(m)}</small></span>${right ?? tag(lot.date, today)}</button>`;
-}
-
 // Today on Home: just "Ate at home today?" (and the freezer nudge when a bag is old enough).
 export function todayHtml(app) {
   const s = app.store.state, today = app.store.today;
@@ -175,7 +167,8 @@ function historyLine(h) {
     case 'ate':
       if (h.left) return `${n}: ${h.left === 'none' ? 'all gone' : h.left === 'little' ? 'a little left' : 'plenty left'}`;
       if (h.part) return `${n}: some`;
-      return `${n} −${h.qty}${h.unit === 'bag' ? (h.qty === 1 ? ' bag' : ' bags') : ''}`;
+      { const t = +(h.taken ?? h.qty).toFixed(2);
+        return t > 0 ? `${n} −${t}${h.unit === 'bag' ? (t === 1 ? ' bag' : ' bags') : ''}` : ''; }
     case 'use': return `${n}: ${h.how === 'some' ? 'used some' : 'used one'}`;
     case 'qty': return h.to <= 0 ? `${n}: all gone` : `${n}: ${h.from} → ${h.to}`;
     case 'amount': return `${n}: ${h.value.toLowerCase()} left`;
@@ -194,7 +187,8 @@ function mergeFixes(list) {
     if (h.kind === 'qty' && prev?.kind === 'qty' && prev.food === h.food && prev.name === h.name && prev.to === h.from) prev.to = h.to;
     else out.push({ ...h });
   }
-  return out;
+  // − then + on the same food is no change at all.
+  return out.filter((h) => !(h.kind === 'qty' && h.from === h.to));
 }
 
 // Lines like "Tomatoes −2", "Curry: all gone", "Eggs: 6 → 4" for one day.
@@ -202,16 +196,22 @@ export function dayLog(s, day) {
   return mergeFixes((s.history[day] || []).filter((h) => h.kind !== 'put')).map(historyLine).filter(Boolean);
 }
 
+// Only what was used that day (voice, Used it, changed stock), not freezing, thawing or throwing out.
+const USED = new Set(['ate', 'use', 'qty', 'amount']);
+export function mealLog(s, day) {
+  return mergeFixes((s.history[day] || []).filter((h) => USED.has(h.kind))).map(historyLine).filter(Boolean);
+}
+
 // "Ate at home today?" — the check that leads to logging what was used (stock out), for today or
 // any earlier day in the calendar. Yes asks whether to record it now (by voice); No marks the day as
-// eaten out (nothing to log). Once something is logged it lists what was used, with a way to add more.
+// eaten out (nothing to record). Once something is recorded it lists what was used, with a way to add more.
 // A day still to come can be planned ahead: "Eating at home on Thursday?" — No marks it as a day out.
 export function mealCheck(app, day) {
   const s = app.store.state;
   const isToday = day === app.store.today;
   const name = longDay(day).split(' ')[0];
   const when = isToday ? 'today' : `on ${name}`;
-  const lines = dayLog(s, day);
+  const lines = mealLog(s, day);
   const ans = mealAnswer(s, day);
   const change = `<button class="link" data-act="meal" data-arg="${day}|none">Change</button>`;
   if (day > app.store.today) {
@@ -220,8 +220,8 @@ export function mealCheck(app, day) {
     return `<div class="meal ask"><p class="meal-q">Eating at home on ${esc(name)}?</p><div class="btn-row wrap"><button class="btn btn-primary sm" data-act="meal" data-arg="${day}|home">Yes</button><button class="btn btn-secondary sm" data-act="meal" data-arg="${day}|out">No, eating out</button></div></div>`;
   }
   const record = (label, cls) => `<button class="btn ${cls} sm" data-act="ate-for" data-arg="${day}">${ICON.mic({ size: 16 })}${label}</button>`;
-  if (lines.length) return `<div class="meal"><ul class="plain">${lines.map((t) => `<li>${esc(t)}</li>`).join('')}</ul><button class="chip-btn" data-act="ate-for" data-arg="${day}">${ICON.mic({ size: 14 })}Add more</button></div>`;
-  if (ans === 'out') return `<div class="meal"><p>${ICON.fork({ size: 15 })}Ate out, nothing to log</p>${change}</div>`;
+  if (ans === 'out') return `<div class="meal"><p>${ICON.fork({ size: 15 })}${isToday ? 'Eating out today' : 'Ate out'}, nothing to record</p>${change}</div>`;
+  if (lines.length) return `<div class="meal"><p class="meal-q">${isToday ? 'Used today' : 'Used'}</p><ul class="plain">${lines.map((t) => `<li>${esc(t)}</li>`).join('')}</ul><button class="chip-btn" data-act="ate-for" data-arg="${day}">${ICON.mic({ size: 14 })}Add more</button></div>`;
   if (ans === 'home' && mealSkipped(s, day)) return `<div class="meal"><p>${ICON.home({ size: 15 })}At home · not recorded</p><div class="btn-row wrap">${record('Record now', 'btn-secondary')}${change}</div></div>`;
   if (ans === 'home') {
     return `<div class="meal ask"><p class="meal-q">Record what you used?</p>

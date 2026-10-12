@@ -54,7 +54,10 @@ export function emptyState(persona) {
 export function replay(events, persona) {
   const s = emptyState(persona);
   const undone = new Set(events.filter((e) => e.type === 'undo').map((e) => e.target));
-  for (const e of events) if (!undone.has(e.id) && e.type !== 'undo') apply(s, e);
+  for (const e of events) {
+    if (undone.has(e.id) || e.type === 'undo') continue;
+    try { apply(s, e); } catch (err) { console.warn('[eatit] skipped an event that could not be read', e, err); }
+  }
   return s;
 }
 
@@ -84,7 +87,7 @@ export function apply(s, e) {
     case 'toss': if (lot) note(s, e.day, { kind: 'toss', ...nameOf(lot) }); s.lots.delete(e.lot); return;
     case 'ate':
       for (const it of e.items || []) {
-        const taken = consume(s, it);
+        const taken = consume(s, it, e.day);
         note(s, e.day, { kind: 'ate', food: it.food, qty: it.qty, unit: it.unit, part: it.part, left: it.left, taken });
       }
       return;
@@ -96,8 +99,7 @@ export function apply(s, e) {
       if (lot && placeOf(s, e.place)) { Object.assign(lot, { place: e.place, spot: null, bag: true, date: { kind: 'frozen', on: e.day } }); note(s, e.day, { kind: 'freeze', ...nameOf(lot) }); }
       return;
     case 'thaw':
-      if (lot && isFrozenPlace(s, lot.place)) { Object.assign(lot, { place: e.place, spot: e.spot || null, date: { kind: 'est', on: addDays(e.day, THAWED_DAYS) }, thawed: true }); note(s, e.day, { kind: 'thaw', ...nameOf(lot) }); }
-      s.thawedOn = e.day;
+      if (lot && isFrozenPlace(s, lot.place)) { Object.assign(lot, { place: e.place, spot: e.spot || null, date: { kind: 'est', on: addDays(e.day, THAWED_DAYS) }, thawed: true }); note(s, e.day, { kind: 'thaw', ...nameOf(lot) }); s.thawedOn = e.day; }
       return;
     case 'move': if (lot && placeOf(s, e.place)) Object.assign(lot, { place: e.place, spot: e.spot ?? null }); return;
     case 'plan': if (e.mode === 'none') delete s.plan[e.day]; else s.plan[e.day] = { mode: e.mode === 'cook' ? 'cook' : 'out', skip: !!e.skip }; return;
@@ -112,11 +114,18 @@ export function apply(s, e) {
       if (!p) return;
       for (const k of ['name', 'kind', 'full', 'src']) if (e[k] !== undefined) p[k] = e[k];
       if (e.full !== undefined) p.measuredOn = e.day;
+      if (e.kind !== undefined) for (const l of s.lots.values()) if (l.place === p.id) settle(s, l, e.day);
       return;
     }
     case 'place.remove': {
       if (!placeOf(s, e.id)) return;
-      for (const l of s.lots.values()) if (l.place === e.id) { l.place = e.moveTo; l.spot = null; }
+      const to = placeOf(s, e.moveTo);
+      for (const l of [...s.lots.values()]) {
+        if (l.place !== e.id) continue;
+        if (!to) { s.lots.delete(l.id); continue; }
+        l.place = to.id; l.spot = null;
+        settle(s, l, e.day);
+      }
       s.places = s.places.filter((p) => p.id !== e.id);
       return;
     }
@@ -174,6 +183,13 @@ function put(s, e) {
   });
 }
 
+// Food that lands in a freezer is frozen from that day; food that leaves one is thawed (our guess).
+function settle(s, l, day) {
+  const frozenNow = isFrozenPlace(s, l.place);
+  if (frozenNow && l.date?.kind !== 'frozen') Object.assign(l, { bag: true, date: { kind: 'frozen', on: day } });
+  else if (!frozenNow && l.date?.kind === 'frozen') Object.assign(l, { date: { kind: 'est', on: addDays(day, THAWED_DAYS) }, thawed: true });
+}
+
 // Used it = one fewer (one egg, one bag, the whole bottle). Used some = partly used.
 function use(s, l, how) {
   if (how === 'some') {
@@ -191,32 +207,47 @@ export function lotsOf(s, foodId) {
     .sort((a, b) => (isFrozenPlace(s, a.place) - isFrozenPlace(s, b.place)) || (a.date?.on || '9999').localeCompare(b.date?.on || '9999') || a.id.localeCompare(b.id));
 }
 
-// Take what the user said they ate. Returns how many units were actually taken.
-export function consume(s, { food, qty = 1, unit, part, left: remains }) {
-  const lots = lotsOf(s, food);
-  if (!lots.length) return 0;
-  // The user said how much is left of the one they used.
-  if (remains) {
-    const l = lots[0];
-    if (remains === 'none') { s.lots.delete(l.id); return units(l); }
-    l.part = true;
-    l.amount = remains === 'little' ? 'Low' : 'Most';
-    return 0;
-  }
-  if (part) { use(s, lots[0], 'some'); return 1; }
-  let left = qty, taken = 0;
-  const byBag = unit === 'bag';
+const AMOUNT_RANK = { Full: 4, Most: 3, Half: 2, Low: 1 };
+// An answer can only make "how much is left" smaller, never bigger.
+const lower = (now, to) => ((AMOUNT_RANK[to] ?? 4) < (AMOUNT_RANK[now] ?? 4) ? to : now);
+
+// Take n units, soonest first: pieces off a counted lot, whole lots otherwise, half a bag as "half".
+function take(s, lots, n, byBag) {
+  let left = n, taken = 0;
   for (const l of byBag ? [...lots.filter((x) => x.bag), ...lots.filter((x) => !x.bag)] : lots) {
     if (left <= 0) break;
     if (l.unit === 'pc' && !byBag) {
       const t = Math.min(left, l.qty);
-      l.qty -= t; left -= t; taken += t;
+      l.qty = Math.round((l.qty - t) * 100) / 100; left -= t; taken += t;
       if (l.qty <= 0) s.lots.delete(l.id);
-    } else {
+    } else if (left >= 1) {
       s.lots.delete(l.id); left -= 1; taken += 1;
+    } else {
+      l.part = true; l.amount = lower(l.amount, 'Half'); taken += left; left = 0;
     }
   }
   return taken;
+}
+
+// Take what the user said they ate. Returns how many units were actually taken. For an earlier
+// day, only food that was already at home that day counts.
+export function consume(s, { food, qty = 1, unit, part, left: remains }, day = null) {
+  let lots = lotsOf(s, food);
+  if (day) { const then = lots.filter((l) => !l.addedOn || l.addedOn <= day); if (then.length) lots = then; }
+  if (!lots.length) return 0;
+  const total = lots.reduce((n, l) => n + units(l), 0);
+  // The user said how much is left.
+  if (remains) {
+    if (remains === 'none') { for (const l of lots) s.lots.delete(l.id); return total; }
+    // Several bags or pieces: "a little left" keeps about a quarter; "plenty left" = one was used.
+    if (total > 1) return take(s, lots, total - (remains === 'little' ? Math.max(1, Math.round(total / 4)) : total - 1), false);
+    const l = lots[0];
+    l.part = true;
+    l.amount = lower(l.amount, remains === 'little' ? 'Low' : 'Most');
+    return 0;
+  }
+  if (part) { use(s, lots[0], 'some'); return 1; }
+  return take(s, lots, qty, unit === 'bag');
 }
 
 export const units = (l) => (l.unit === 'pc' ? l.qty : 1);

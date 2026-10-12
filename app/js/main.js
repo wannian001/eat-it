@@ -24,7 +24,10 @@ import { onboardingPage, freshOnboarding } from './views/onboarding.js';
 import { lotSheet, placesSheet, measureSheet, typeSheet, consentSheet, emailSheet, pickSheet } from './views/sheets.js';
 
 const root = document.getElementById('app');
-const ROUTES = { home: homePage, food: foodPage, add: addPage, ways: waysPage, scan: scanPage, review: reviewPage, ate: atePage, week: weekPage, plan: weekPage, shop: shopPage, settings: householdPage, widgets: widgetsPage, lock: lockPage };
+// Some screens (I ate, scan, lock screen) are drawn twice: the phone copy and the desktop device
+// frame, so an id can appear twice. Always use the copy that is actually on screen.
+const byId = (id) => [...document.querySelectorAll(`[id="${id}"]`)].find((el) => el.getClientRects().length) || document.getElementById(id);
+const ROUTES = { home: homePage, food: foodPage, add: addPage, ways: waysPage, scan: scanPage, review: reviewPage, ate: atePage, week: weekPage, shop: shopPage, settings: householdPage, widgets: widgetsPage, lock: lockPage };
 const FULL = new Set(['add', 'scan', 'ate', 'widgets', 'lock']); // phone: no tab bar
 const NO_TABS = new Set([...FULL, 'review', 'ways']);
 const SHEETS = { lot: lotSheet, places: placesSheet, measure: measureSheet, type: typeSheet, consent: consentSheet, email: emailSheet, pick: pickSheet };
@@ -59,7 +62,7 @@ function shell(content) {
   const pill = route === 'home' || route === 'food'
     ? `<div class="pill-bar"><div class="seg"><button class="seg-primary" data-act="go" data-arg="add">${ICON.plus({ size: 18, stroke: 2.4 })}Add food</button><button class="seg-plain" data-act="go" data-arg="ate">${ICON.minus({ size: 18, stroke: 2.4 })}I ate</button></div></div>` : '';
   const toast = ui.toast ? `<div class="toast" role="status">${esc(ui.toast.msg)}${ui.toast.undo ? `<button data-act="undo" data-arg="${esc(ui.toast.undo)}">Undo</button>` : ''}</div>` : '';
-  return `<div class="shell r-${route}${FULL.has(route) ? ' full' : ''}${NO_TABS.has(route) ? ' no-tabs' : ''}">${side}<main class="main" id="main">${content}</main>${pill}${tabs}${toast}</div>`;
+  return `<div class="shell r-${route}${FULL.has(route) ? ' full' : ''}${NO_TABS.has(route) ? ' no-tabs' : ''}"${app.ui.sheet ? ' inert' : ''}>${side}<main class="main" id="main">${content}</main>${pill}${tabs}${toast}</div>`;
 }
 
 function render() {
@@ -69,9 +72,12 @@ function render() {
   const strip0 = root.querySelector('.days');
   const keepX = strip0 && root.dataset.route === app.route ? strip0.scrollLeft : null;
   const sheetWasOpen = !!root.querySelector('.sheet');
+  const sheetTop = root.querySelector('.sheet')?.scrollTop || 0;
   const active = document.activeElement;
   const focusId = active && root.contains(active) && active.id ? active.id : null;
   const sel = focusId && 'selectionStart' in active ? [active.selectionStart, active.selectionEnd] : null;
+  // Buttons have no ids: find the same control again by what it does (data-act + data-arg).
+  const focusKey = !focusId && active && root.contains(active) && active.dataset?.act ? [active.dataset.act, active.dataset.arg ?? null] : null;
 
   let html;
   if (app.ui.adding) html = onboardingPage(app);
@@ -95,21 +101,29 @@ function render() {
     const focus = app.ui.weekFocus && document.getElementById(`day-${app.ui.weekFocus}`);
     if (focus) center(focus);
   }
-  app.ui.weekJump = false;
-  app.ui.weekFocus = null;
+  if (app.route === 'week') { app.ui.weekJump = false; app.ui.weekFocus = null; }
+  syncCamera();
   document.body.dataset.route = app.route;
   const next = root.querySelector('.main');
   if (next) next.scrollTop = keep;
-  if (sheetWasOpen) root.querySelector('.sheet-wrap')?.classList.add('still');
+  if (sheetWasOpen) { root.querySelector('.sheet-wrap')?.classList.add('still'); const sh = root.querySelector('.sheet'); if (sh) sh.scrollTop = sheetTop; }
+  const byKey = ([act, arg]) => [...root.querySelectorAll(`[data-act="${CSS.escape(act)}"]`)].find((el) => (el.dataset.arg ?? null) === arg && el.getClientRects().length && !el.closest('[inert]'));
   if (focusId) {
-    const el = document.getElementById(focusId);
+    const el = byId(focusId);
     if (el) { el.focus({ preventScroll: true }); if (sel && el.setSelectionRange) try { el.setSelectionRange(...sel); } catch { /* not a text input */ } }
-  } else if (app.ui.sheet && !sheetWasOpen) root.querySelector('.sheet button:not(.sheet-x), .sheet input, .sheet select')?.focus({ preventScroll: true });
+  } else if (app.ui.sheet && !sheetWasOpen) {
+    app.ui.sheetFrom = focusKey;
+    root.querySelector('.sheet button:not(.sheet-x), .sheet input, .sheet select')?.focus({ preventScroll: true });
+  } else if (!app.ui.sheet && sheetWasOpen && app.ui.sheetFrom) {
+    // Sheet closed: back to whatever opened it.
+    byKey(app.ui.sheetFrom)?.focus({ preventScroll: true });
+    app.ui.sheetFrom = null;
+  } else if (focusKey) byKey(focusKey)?.focus({ preventScroll: true });
 }
 
 function routeFromHash() {
   const r = location.hash.replace(/^#\/?/, '') || 'home';
-  if (!ROUTES[r]) return 'home';
+  if (!Object.hasOwn(ROUTES, r)) return 'home';
   if (r === 'review' && !app.ui.add.lines.length && app.ui.add.src !== 'picks') return 'add';
   return r;
 }
@@ -124,16 +138,18 @@ function go(route) {
 
 function onRoute() {
   const r = routeFromHash();
+  const prev = app.route;
+  if (prev && r !== prev) lastNav = Date.now();
   if (r !== 'ate') stopVoice();
   if (r === 'add' && !['scan', 'review', 'ways'].includes(app.route)) app.ui.add = freshAdd();
-  if (r === 'ate' && app.route !== 'ate') { app.ui.ate = freshAte(app.ui.ateDay || null); app.ui.ateDay = null; }
+  if (r === 'ate' && app.route !== 'ate') { app.ui.ate = { ...freshAte(app.ui.ateDay || null), from: app.ui.ateFrom || null }; app.ui.ateDay = null; app.ui.ateFrom = null; }
   if (r !== app.route) { app.ui.confirm = null; app.ui.userMenu = false; }
   if (r === 'lock' && app.route !== 'lock') app.ui.lockDismissed = false;
   app.route = r;
   if (!app.ui.keepSheet) app.ui.sheet = null;
   app.ui.keepSheet = false;
   render();
-  if (r !== 'review') document.getElementById('main')?.scrollTo?.(0, 0);
+  if (r !== 'review' && r !== prev) { document.getElementById('main')?.scrollTo?.(0, 0); window.scrollTo(0, 0); }
 }
 
 // ---------- users ----------
@@ -150,17 +166,89 @@ function onStore() { render(); }
 
 function toast(msg, undo = null) {
   app.ui.toast = { msg, undo };
+  render();
   clearTimeout(toast.t);
   toast.t = setTimeout(() => { app.ui.toast = null; render(); }, 5000);
 }
 
 
+// ---------- camera (Add food) ----------
+// The camera page uses the real camera when it can (phones and laptops ask once), so photo, receipt
+// and barcode look real. Reading what's in the picture is still simulated.
+let camStream = null;
+let camState = 'off';   // off | asking | on | denied
+// Only while a camera screen is actually on show (on a computer, Add food opens the list of ways).
+const camOnScreen = () => [...root.querySelectorAll('.screen.cam')].some((el) => el.getClientRects().length);
+const wantCamera = () => !!(app.store && ['add', 'scan'].includes(app.route) && app.store.persona.photo && !app.ui.add.img
+  && navigator.mediaDevices?.getUserMedia && camState !== 'denied' && camOnScreen());
+function stopCamera() {
+  camStream?.getTracks().forEach((t) => t.stop());
+  camStream = null;
+  if (camState === 'on') camState = 'off';
+}
+async function syncCamera() {
+  if (!wantCamera()) { if (camStream) { stopCamera(); app.ui.camLive = false; } return; }
+  if (camState === 'off') {
+    camState = 'asking';
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }, audio: false });
+      camState = 'on';
+    } catch { camState = 'denied'; }
+    if (!wantCamera()) stopCamera();
+    app.ui.camLive = camState === 'on';
+    render();
+    return;
+  }
+  if (camStream) for (const v of root.querySelectorAll('video.cam-feed')) if (v.srcObject !== camStream) { v.srcObject = camStream; v.play?.().catch(() => {}); }
+}
+// The shutter freezes what the camera sees, so the next screens show your own picture.
+function grabFrame() {
+  const v = [...root.querySelectorAll('video.cam-feed')].find((x) => x.getClientRects().length && x.videoWidth);
+  if (!v) return null;
+  const c = document.createElement('canvas');
+  c.width = 720; c.height = Math.round((720 * v.videoHeight) / v.videoWidth);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  try { return c.toDataURL('image/jpeg', 0.8); } catch { return null; }
+}
+
 // ---------- voice ----------
 
-let rec = null;
+// One recognizer for the whole visit, reused. Phones (iOS Safari especially) refuse to start a new
+// one while the last is still winding down, which made voice work once and then stop. So: wait for
+// the old session to end before starting, and never wait forever for the browser to say it ended.
+let rec = null;        // the recognizer
+let recOn = false;     // from start() until the browser says it ended
+let session = null;    // handlers of the listening session that is running now
+let pendingStart = null;
+let stopTimer = null;
+
+const voiceOff = () => { app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); byId('ate-text')?.focus(); };
+
+function recognizer() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  if (!rec) {
+    rec = new SR();
+    rec.lang = 'en-AU';
+    rec.interimResults = true;
+    rec.continuous = true;
+    rec.onstart = () => { recOn = true; };
+    rec.onresult = (e) => session?.onresult(e);
+    rec.onerror = (e) => session?.onerror(e);
+    rec.onend = () => {
+      recOn = false;
+      const next = pendingStart; pendingStart = null;
+      if (next) { next(); return; }
+      session?.onend();
+    };
+  }
+  return rec;
+}
 
 function stopVoice() {
-  if (rec) { rec.onend = null; try { rec.abort(); } catch { /* already stopped */ } rec = null; }
+  session = null;
+  clearTimeout(stopTimer);
+  if (rec && recOn) { try { rec.abort(); } catch { /* already stopped */ } }
 }
 
 // After speaking: let the AI (or the built-in reader) work out the food, then ask about anything
@@ -187,31 +275,50 @@ function listen() {
   stopVoice();
   app.ui.ate = { ...freshAte(app.ui.ate.day), phase: 'listening' };
   render();
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); return; }
-  rec = new SR();
-  rec.lang = 'en-AU';
-  rec.interimResults = true;
-  rec.continuous = true;
+  if (!recognizer()) { voiceOff(); return; }
   let finalText = '';
-  rec.onresult = (e) => {
-    let interim = '';
-    for (let k = e.resultIndex; k < e.results.length; k++) {
-      const r = e.results[k];
-      if (r.isFinal) finalText += `${r[0].transcript} `; else interim += r[0].transcript;
-    }
-    app.ui.ate.text = `${finalText}${interim}`.trim();
-    render();
+  const mine = {
+    onresult(e) {
+      let interim = '';
+      for (let k = e.resultIndex; k < e.results.length; k++) {
+        const r = e.results[k];
+        if (r.isFinal) finalText += `${r[0].transcript} `; else interim += r[0].transcript;
+      }
+      app.ui.ate.text = `${finalText}${interim}`.trim();
+      render();
+    },
+    onerror(e) {
+      if (['not-allowed', 'service-not-allowed', 'audio-capture', 'network'].includes(e.error)) { session = null; voiceOff(); }
+    },
+    onend() {
+      if (session !== mine) return;
+      session = null;
+      clearTimeout(stopTimer);
+      if (app.ui.ate.phase === 'listening') finishVoice();
+    },
   };
-  rec.onerror = (e) => {
-    if (['not-allowed', 'service-not-allowed', 'audio-capture', 'network'].includes(e.error)) { stopVoice(); app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); }
+  session = mine;
+  const begin = () => {
+    if (session !== mine) return;
+    try { recognizer().start(); recOn = true; } catch { session = null; voiceOff(); }
   };
-  rec.onend = () => { rec = null; if (app.ui.ate.phase === 'listening') finishVoice(); };
-  try { rec.start(); } catch { rec = null; app.ui.ate.phase = 'nosupport'; app.ui.ate.typing = true; render(); }
+  if (!recOn) { begin(); return; }
+  // The last session is still ending: start when it has. If the browser never says so, start over
+  // with a fresh recognizer.
+  pendingStart = begin;
+  setTimeout(() => { if (pendingStart === begin) { pendingStart = null; rec = null; recOn = false; begin(); } }, 800);
 }
 
 function stopListening() {
-  if (rec) { rec.stop(); return; }
+  if (session && recOn) {
+    try { rec.stop(); } catch { /* ended already */ }
+    // Some browsers never send "end" after stop: finish anyway.
+    const mine = session;
+    clearTimeout(stopTimer);
+    stopTimer = setTimeout(() => { if (session === mine) { stopVoice(); rec = null; recOn = false; if (app.ui.ate.phase === 'listening') finishVoice(); } }, 1500);
+    return;
+  }
+  session = null;
   finishVoice();
 }
 
@@ -219,7 +326,7 @@ function stopListening() {
 
 const line = (k) => app.ui.add.lines.find((l) => l.key === k);
 const split = (arg) => String(arg ?? '').split('|');
-const val = (id) => document.getElementById(id)?.value ?? '';
+const val = (id) => byId(id)?.value ?? '';
 const dispatch = (e) => app.store.dispatch(e);
 const lotName = (id) => { const l = app.store.state.lots.get(id); return l ? foodName(l.food, 2, l) : 'Food'; };
 
@@ -243,6 +350,16 @@ function startScan(img) {
 function addShop(name, own = 'mine') {
   dispatch({ type: 'shop.add', id: `s${Date.now().toString(36)}`, name, own, who: app.store.state.profile.name });
   toast(`${name} added to the list.`);
+}
+
+// Where I ate goes back to: the week calendar (with that day open) when it was opened from there or
+// for an earlier day, otherwise Home.
+function ateBack() {
+  const a = app.ui.ate;
+  const day = a.day || app.store.today;
+  if (a.from !== 'week' && !(a.day && a.day !== app.store.today)) return 'home';
+  app.ui.weekOpen = day; app.ui.weekFocus = day;
+  return 'week';
 }
 
 const ACT = {
@@ -296,7 +413,7 @@ const ACT = {
     toast(`${name} removed.`, e.id);
   },
   // Record what was used on a given day (today or earlier) by voice.
-  'ate-for'(day) { app.ui.ateDay = day === app.store.today ? null : day; app.ui.sheet = null; go('ate'); },
+  'ate-for'(day) { app.ui.ateDay = day === app.store.today ? null : day; app.ui.ateFrom = app.route; app.ui.sheet = null; go('ate'); },
   // Open or close a day card in the week calendar.
   day(d) { app.ui.weekOpen = app.ui.weekOpen === d ? null : d; app.ui.weekFocus = app.ui.weekOpen; render(); },
   // "Ate at home that day?": home asks whether to record now, skip = "Not now", out = ate out,
@@ -305,14 +422,14 @@ const ACT = {
     const [day, ans] = split(arg);
     const mode = ans === 'home' ? 'cook' : ans === 'out' ? 'out' : 'none';
     const e = await dispatch({ type: 'plan', day, mode: ans === 'skip' ? 'cook' : mode, skip: ans === 'skip' });
-    if (ans === 'out') toast(day > app.store.today ? `Eating out on ${weekday(day)}.` : 'Ate out: nothing to log.', e.id);
+    if (ans === 'out') toast(day > app.store.today ? `Eating out on ${weekday(day)}.` : day === app.store.today ? 'Eating out today.' : 'Ate out: nothing to record.', e.id);
   },
   // The "Out tonight" widget (board 05).
   async out() {
     const today = app.store.today;
     const on = modeOf(app.store.state, today) !== 'out';
     const e = await dispatch({ type: 'plan', day: today, mode: on ? 'out' : 'none' });
-    toast(on ? 'Eating out tonight. Reminders move to tomorrow.' : 'Back to eating at home.', e.id);
+    toast(on ? 'Eating out tonight.' : 'Back to eating at home.', e.id);
   },
   'week-move'(n) { app.ui.weekOffset = Number(n) === 0 ? 0 : (app.ui.weekOffset || 0) + Number(n); app.ui.weekJump = true; render(); },
   async qty(arg) {
@@ -343,7 +460,7 @@ const ACT = {
   },
   async 'place-add'() {
     const name = val('np-name').trim();
-    if (!name) { document.getElementById('np-name')?.focus(); return; }
+    if (!name) { byId('np-name')?.focus(); return; }
     await dispatch({ type: 'place.add', id: `p${Date.now().toString(36)}`, name, kind: val('np-kind') || 'room' });
     toast(`${name} added.`);
   },
@@ -371,7 +488,7 @@ const ACT = {
     render();
   },
   mode(m) { app.ui.add.mode = m; app.ui.add.img = null; render(); },
-  shoot() { startScan(null); },
+  shoot() { startScan(grabFrame()); },
   review(src) {
     app.ui.add = freshAdd({ src, mode: src });
     app.ui.add.lines = buildLines(app, src);
@@ -434,7 +551,7 @@ const ACT = {
   },
   async 'type-add'() {
     const name = val('qa-name').trim();
-    if (!name) { document.getElementById('qa-name')?.focus(); return; }
+    if (!name) { byId('qa-name')?.focus(); return; }
     const s = app.store.state, p = app.store.persona;
     const f = matchFood(name) || customId(name);
     const known = !!matchFood(name);
@@ -455,17 +572,18 @@ const ACT = {
     toast(what === 'account' ? (on === 'on' ? 'Supermarket account linked.' : 'Supermarket account unlinked.') : on === 'on' ? 'Email connected.' : 'Email disconnected.');
   },
   async 'email-connect'() {
-    const senders = [['em-c1', 'Online supermarket orders'], ['em-c2', 'In-store e-receipts'], ['em-c3', 'Meal-kit and delivery apps']].filter(([id]) => document.getElementById(id)?.checked).map(([, t]) => t);
+    const senders = [['em-c1', 'Online supermarket orders'], ['em-c2', 'In-store e-receipts'], ['em-c3', 'Meal-kit and delivery apps']].filter(([id]) => byId(id)?.checked).map(([, t]) => t);
     app.ui.keepSheet = true;
     await dispatch({ type: 'link', what: 'email', on: true, senders });
   },
 
   listen: () => listen(),
   stop: () => stopListening(),
-  'ate-type'() { app.ui.ate.typing = true; render(); document.getElementById('ate-text')?.focus(); },
+  'ate-type-again'() { stopVoice(); app.ui.ate = { ...freshAte(app.ui.ate.day), typing: true }; render(); byId('ate-text')?.focus(); },
+  'ate-type'() { app.ui.ate.typing = true; render(); byId('ate-text')?.focus(); },
   'ate-typed'() {
     const text = val('ate-text').trim();
-    if (!text) { document.getElementById('ate-text')?.focus(); return; }
+    if (!text) { byId('ate-text')?.focus(); return; }
     stopVoice();
     app.ui.ate = { ...freshAte(app.ui.ate.day), text };
     finishVoice();
@@ -477,17 +595,22 @@ const ACT = {
     else { a.result = ateResult(app.store, a.items, a.answers, a.day); a.phase = 'done'; }
     render();
   },
+  // Close: back to the week calendar when an earlier day was being filled in, otherwise Home.
+  'boot-reset'() {
+    try { for (const k of Object.keys(localStorage)) if (k.startsWith('eatit:')) localStorage.removeItem(k); } catch { /* storage blocked */ }
+    location.reload();
+  },
+  'guide-done'() { prefs.set(`guide:${app.store.persona.id}`, true); render(); },
+  'ate-close'() { go(ateBack()); },
   'ate-back'() {
     const a = app.ui.ate;
     if (a.step > 0) { a.step -= 1; render(); } else listen();
   },
   async 'ate-done'() {
     const ev = app.ui.ate.result?.event;
-    const past = app.ui.ate.day && app.ui.ate.day !== app.store.today ? app.ui.ate.day : null;
+    const back = ateBack();
     app.ui.ate = freshAte();
-    // An earlier day was filled in from the calendar: go back to it, opened, to see what was logged.
-    if (past) { app.ui.weekOpen = past; app.ui.weekFocus = past; }
-    go(past ? 'week' : 'home');
+    go(back);
     if (ev) { const e = await dispatch(ev); toast('Updated your fridge.', e.id); }
   },
 
@@ -514,8 +637,8 @@ const ACT = {
   set(key) { dispatch({ type: 'set', key, value: !app.store.state.settings[key] }); },
   confirm(what) { app.ui.confirm = what || null; render(); },
   async house(action) {
-    if (action === 'join' && !val('join-code').trim()) { document.getElementById('join-code')?.focus(); return; }
-    const code = action === 'create' ? `SL-${1000 + Math.floor(Math.random() * 9000)}` : action === 'join' ? val('join-code').trim().toUpperCase() : null;
+    if (action === 'join' && !val('join-code').trim()) { byId('join-code')?.focus(); return; }
+    const code = action === 'create' ? `EI-${1000 + Math.floor(Math.random() * 9000)}` : action === 'join' ? val('join-code').trim().toUpperCase() : null;
     app.ui.confirm = null;
     await dispatch({ type: 'house', action, code });
   },
@@ -556,9 +679,9 @@ const ACT = {
   },
 
   ob(step) {
-    const n = document.getElementById('ob-name');
+    const n = byId('ob-name');
     if (n) app.ui.onb.name = n.value.trim();
-    const c = document.getElementById('ob-code');
+    const c = byId('ob-code');
     if (c) app.ui.onb.code = c.value.trim();
     app.ui.onb.step = step;
     render();
@@ -573,12 +696,12 @@ const ACT = {
   'ob-house'(v) { app.ui.onb.house = v; render(); },
   async 'ob-finish'() {
     const o = app.ui.onb;
-    const c = document.getElementById('ob-code');
+    const c = byId('ob-code');
     if (c) o.code = c.value.trim().toUpperCase();
     const BASE = { fridge: ['Fridge', 'cold'], freezer: ['Freezer', 'frozen'], pantry: ['Cupboard', 'room'] };
     const places = [...Object.entries(BASE).filter(([id]) => o.places[id]).map(([id, [name, kind]]) => ({ id, name, kind, sub: '', full: null })),
       ...o.extra.map((x, i) => ({ id: `x${i}`, name: x.name, kind: x.kind, sub: '', full: null }))];
-    const code = o.house === 'create' ? `SL-${1000 + Math.floor(Math.random() * 9000)}` : o.house === 'join' ? (o.code || null) : null;
+    const code = o.house === 'create' ? `EI-${1000 + Math.floor(Math.random() * 9000)}` : o.house === 'join' ? (o.code || null) : null;
     if (app.ui.adding) { await openUser(addUser(o.name)); app.ui.adding = false; }
     await dispatch({ type: 'setup', name: o.name || app.store.persona.name, places, house: o.house, code });
     go('home');
@@ -616,9 +739,12 @@ const CHANGE = {
   'ob-place'(id, _v, el) { app.ui.onb.places[id] = el.checked; },
 };
 
+// A second tap that lands on the new page right after a page change is ignored (double taps).
+let lastNav = 0;
 root.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]');
   if (!el || !root.contains(el)) return;
+  if (Date.now() - lastNav < 350) { e.preventDefault(); return; }
   // A sheet's backdrop closes it; clicks inside the sheet itself don't.
   if (el.classList.contains('sheet-wrap') && e.target !== el) return;
   const fn = ACT[el.dataset.act];
@@ -638,8 +764,10 @@ root.addEventListener('change', (e) => {
   if (fn) fn(el.dataset.arg, el.value, el);
 });
 
+root.addEventListener('compositionend', (e) => e.target.dispatchEvent(new Event('input', { bubbles: true })));
 root.addEventListener('input', (e) => {
   const el = e.target;
+  if (e.isComposing) return;   // Chinese / Japanese / Korean input, Android keyboards: wait for the word
   if (el.dataset.input === 'food-q') { app.ui.food.q = el.value; render(); }
   if (el.dataset.input === 'qa-name' && app.ui.sheet) { app.ui.sheet.name = el.value; render(); }
   if (el.dataset.change === 'measure-val') { app.ui.sheet.val = Number(el.value); const out = root.querySelector('.measure-out'); if (out) out.textContent = `≈ ${el.value}% full`; }
@@ -658,10 +786,14 @@ window.addEventListener('hashchange', onRoute);
 // ---------- start ----------
 
 (async () => {
-  const params = new URLSearchParams(location.search);
-  if (params.get('frame') === '0') document.body.classList.add('bare');
-  const asked = params.get('user') || params.get('p');
-  const id = asked && userProfile(asked) ? asked : currentUser();
-  if (id) await openUser(id);
-  onRoute();
+  try {
+    const params = new URLSearchParams(location.search);
+    const asked = params.get('user');
+    const id = asked && userProfile(asked) ? asked : currentUser();
+    if (id) await openUser(id);
+    onRoute();
+  } catch (err) {
+    console.error('[eatit] could not start', err);
+    root.innerHTML = `<div class="onboard"><div class="ob-card"><h1>Something went wrong</h1><p class="muted">What's saved on this device couldn't be read.</p><div class="btn-row"><button class="btn btn-primary" data-act="boot-reset">Clear it and start again</button></div></div></div>`;
+  }
 })();

@@ -16,7 +16,7 @@ export function signInPage() {
   return `<div class="onboard"><div class="ob-card wide">
     <div class="ob-brand">${appIcon({ size: 40, badge: true })}${wordmark('md')}</div>
     <h1>Who's using Eat It!?</h1>
-    <p class="muted">Each person has their own fridge, plan and settings on this device.</p>
+    <p class="muted">Each person has their own fridge, week and settings on this device.</p>
     <div class="user-grid">
       ${users.map((u, i) => `<button class="user-card" data-act="user" data-arg="${esc(u.id)}"><span class="avatar av-${i % 3} lg">${esc(u.initial)}</span><b>${esc(u.name)}</b><small>${esc(about(u))}</small></button>`).join('')}
       <button class="user-card add" data-act="user-add"><span class="avatar lg add-av">${ICON.plus({ size: 22, stroke: 2.4 })}</span><b>Add a user</b><small>Start with an empty kitchen</small></button>
@@ -44,7 +44,7 @@ export function userCard(app) {
   const u = users[i] || { name: app.store.persona.name, initial: (app.store.persona.name || '?')[0] };
   const open = !!app.ui.userMenu;
   return `<div class="me-card${open ? ' open' : ''}">
-    <button class="me-head" data-act="user-menu" aria-expanded="${open}"><span class="avatar av-${i % 3}">${esc(u.initial)}</span><span class="ur-main"><small>Signed in as</small><b>${esc(app.store.state.profile.name || u.name)}</b></span><span class="chev" aria-hidden="true">${ICON.next({ size: 16 })}</span></button>
+    <button class="me-head" data-act="user-menu" aria-expanded="${open}"><span class="avatar av-0">${esc(u.initial)}</span><span class="ur-main"><small>Signed in as</small><b>${esc(app.store.state.profile.name || u.name)}</b></span><span class="chev" aria-hidden="true">${ICON.next({ size: 16 })}</span></button>
     ${open ? userList(app, { others: true }) : ''}
   </div>`;
 }

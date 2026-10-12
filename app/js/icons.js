@@ -33,9 +33,7 @@ const P = {
   box: '<path d="M3.5 8 12 4l8.5 4v9L12 21l-8.5-4z"/><path d="M3.5 8 12 12l8.5-4M12 12v9"/>',
   balcony: '<path d="M3 11h18M4 20h16M6 11v9M10 11v9M14 11v9M18 11v9M8 11V6a4 4 0 0 1 8 0v5"/>',
   shelf: '<path d="M4 5h16M4 12h16M4 19h16M5 5v14M19 5v14"/>',
-  pan: '<path d="M3 11h12v1a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z"/><path d="M15 12h6"/>',
   fork: '<path d="M7 3v18M4.5 3v5a2.5 2.5 0 0 0 5 0V3M16.5 21V3c-2 1.4-3 3.8-3 6.6V13h3"/>',
-  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   bell: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   moon: '<path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10z"/>',
   bars: '<path d="M5 20v-6M10 20V9M15 20v-9M20 20V5"/>',
@@ -44,7 +42,6 @@ const P = {
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
   download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
   phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
-  play: '<path d="M7 5v14l11-7z"/>',
   dots: '<circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/>',
 };
 

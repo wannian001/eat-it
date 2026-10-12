@@ -14,7 +14,7 @@
 export const FOODS = {
   beef:        { name: 'Beef mince', short: 'Beef', aliases: ['beef mince', 'minced beef', 'ground beef', 'mince', 'beef'], sticker: 'beef', bag: 'beefbag', cat: 'meat', spot: 'middle', unit: 'g', byWeight: true, est: 2, group: 'fresh mince', keep: 'Mince is best used within about 3–4 months frozen.', tip: 'Thaw it in the fridge overnight, not on the bench.' },
   chicken:     { name: 'Chicken thigh', plural: 'Chicken thighs', short: 'Chicken', aliases: ['chicken thighs', 'chicken thigh', 'chicken', 'thighs', 'thigh'], sticker: 'chicken', bag: 'chickenbag', cat: 'meat', spot: 'middle', unit: 'pc', est: 2, group: 'fresh chicken', tip: 'Keep raw meat on the bottom shelf so nothing drips onto other food.' },
-  pork:        { name: 'Pork shoulder', short: 'Pork', aliases: ['pork shoulder', 'pork'], sticker: null, bag: null, cat: 'meat', spot: 'middle', unit: 'g', byWeight: true, est: 2, group: 'fresh pork', tip: 'Thaw it in the fridge overnight, not on the bench.' },
+  pork:        { name: 'Pork shoulder', short: 'Pork', aliases: ['pork shoulder', 'pork mince', 'minced pork', 'pork'], sticker: null, bag: null, cat: 'meat', spot: 'middle', unit: 'g', byWeight: true, est: 2, group: 'fresh pork', tip: 'Thaw it in the fridge overnight, not on the bench.' },
   salmon:      { name: 'Salmon fillets', short: 'Salmon', aliases: ['salmon fillets', 'salmon fillet', 'salmon', 'fish'], cat: 'meat', spot: 'middle', unit: 'pc', est: 2, group: 'fresh fish', tip: 'Thaw it in the fridge overnight, not on the bench.' },
   dumplings:   { name: 'Dumplings', aliases: ['frozen dumplings', 'dumplings', 'dumpling'], sticker: 'dumplings', cat: 'other', spot: 'middle', unit: 'bag', tip: 'Cook them straight from frozen.' },
   peas:        { name: 'Frozen peas', short: 'Peas', aliases: ['frozen peas', 'peas'], cat: 'produce', spot: 'middle', unit: 'g', tip: 'Cook them straight from frozen.' },
@@ -41,7 +41,7 @@ export const FOODS = {
   apple:       { name: 'Apple', plural: 'Apples', aliases: ['apples', 'apple'], sticker: 'apple', cat: 'produce', spot: 'crisper', unit: 'pc', est: 14, group: 'apples' },
   bread:       { name: 'Bread', aliases: ['bread', 'loaf', 'toast'], sticker: 'bread', cat: 'other', spot: 'middle', unit: 'pc', est: 5, room: true, group: 'bread', tip: 'Keep it sealed, somewhere cool and dry.' },
   rice:        { name: 'Rice', aliases: ['rice'], sticker: 'rice', cat: 'other', spot: 'middle', unit: 'pc', room: true, dry: true, tip: 'Put cooked rice in the fridge soon after cooking.' },
-  noodles:     { name: 'Instant noodles', short: 'Noodles', aliases: ['instant noodles', 'noodles', 'ramen'], cat: 'other', spot: 'middle', unit: 'pc', room: true },
+  noodles:     { name: 'Instant noodles', short: 'Noodles', aliases: ['instant noodles', 'egg noodles', 'rice noodles', 'noodles', 'ramen'], cat: 'other', spot: 'middle', unit: 'pc', room: true },
   pasta:       { name: 'Penne pasta', short: 'Pasta', aliases: ['penne pasta', 'penne', 'pasta', 'spaghetti'], cat: 'other', spot: 'middle', unit: 'pc', room: true },
   oats:        { name: 'Oats', aliases: ['rolled oats', 'oats', 'porridge'], cat: 'other', spot: 'middle', unit: 'pc', room: true },
   chickpeas:   { name: 'Chickpeas', aliases: ['chickpeas', 'chickpea'], cat: 'other', spot: 'middle', unit: 'pc', room: true },
@@ -54,7 +54,6 @@ export const FOODS = {
 };
 
 export const CATS = ['meat', 'dairy', 'produce', 'other', 'nonfood'];
-export const CAT_NAMES = { meat: 'Meat', dairy: 'Dairy', produce: 'Fruit & veg', other: 'Other', nonfood: 'Not food' };
 
 const slug = (s) => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -74,8 +73,14 @@ export function foodName(id, n = 2, lot) {
 
 export const shortName = (id, lot) => lot?.name || food(id).short || food(id).name;
 
+// Phrases that contain a catalogue word but are something else: "chicken stock" is not chicken
+// thighs, "lamb mince" is not beef mince. They match as "no food" (null), so nothing gets taken.
+export const NOT_FOOD = ['chicken stock', 'beef stock', 'vegetable stock', 'stock cube', 'stock cubes', 'chicken mince', 'lamb mince', 'turkey mince', 'veal mince',
+  'chicken salt', 'beef jerky', 'fish sauce', 'oyster sauce', 'tomato sauce', 'tomato paste', 'tomato soup', 'apple juice', 'orange juice', 'apple cider',
+  'milk chocolate', 'chocolate milk', 'banana bread', 'rice paper', 'rice cooker', 'rice wine', 'rice vinegar', 'egg cup', 'peanut oil', 'cheese sauce'];
+
 // Match free text ("2 firm tofu", "Spring onions") to a catalogue id, longest alias first.
-const ALIASES = Object.entries(FOODS).flatMap(([id, f]) => f.aliases.map((a) => [a, id])).sort((a, b) => b[0].length - a[0].length);
+const ALIASES = [...Object.entries(FOODS).flatMap(([id, f]) => f.aliases.map((a) => [a, id])), ...NOT_FOOD.map((a) => [a, null])].sort((a, b) => b[0].length - a[0].length);
 export function matchFood(text) {
   const t = ` ${String(text).toLowerCase()} `;
   for (const [a, id] of ALIASES) if (t.includes(` ${a} `) || t.includes(` ${a},`) || t.includes(` ${a}.`)) return id;

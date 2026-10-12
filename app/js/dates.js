@@ -95,6 +95,7 @@ export function dateTag(date, today, ctx = 'tile') {
     case 'best_before':
       return d < 0 ? { text: 'Past best before', kind: 'best_before' } : { text: `Best before ${when(date.on, today)}`, kind: 'best_before' };
     case 'est': {
+      if (d < 0) return { text: 'Past our guess', kind: 'est' };
       let text = `~${span(d)}`;
       if ((ctx === 'card' || ctx === 'sheet') && d > 0) text += ' left';
       if (ctx === 'receipt') text += ' (our guess)';

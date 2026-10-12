@@ -47,7 +47,7 @@ export function shopPage(app) {
   const rows = s.shop.map((it) => {
     const f = matchFood(it.name);
     const parts = [];
-    if (mates.length) { parts.push(it.own === 'shared' ? 'Shared' : 'Just for me'); parts.push(it.who ? (it.who === me ? "you're getting it" : `${it.who} is getting it`) : 'nobody yet'); }
+    if (mates.length) { parts.push(it.own === 'shared' ? 'Shared' : 'Mine'); parts.push(it.done ? 'bought' : it.who ? (it.who === me ? "you're getting it" : `${it.who} is getting it`) : 'nobody yet'); }
     if (it.note) parts.push(it.note);
     return `<li class="srow${it.done ? ' done' : ''}"><button class="tick${it.done ? ' on' : ''}" data-act="shop-done" data-arg="${esc(it.id)}" aria-pressed="${!!it.done}" aria-label="Mark ${esc(it.name)} as bought">${it.done ? ICON.check({ size: 14, stroke: 3 }) : ''}</button>${f ? pic(f, { size: 30 }) : pic('x', { size: 30, lot: { cat: 'other', name: it.name } })}<span class="r-main"><b>${esc(it.name)}</b>${parts.length ? `<small>${esc(parts.join(' · '))}</small>` : ''}</span>${!it.who && !it.done ? `<button class="chip-btn" data-act="shop-claim" data-arg="${esc(it.id)}">I'll get it</button>` : ''}</li>`;
   }).join('');

@@ -30,7 +30,7 @@ export function onboardingPage(app) {
     const ch = (v, t, sub, ic) => `<button class="choice${o.house === v ? ' on' : ''}" data-act="ob-house" data-arg="${v}" aria-pressed="${o.house === v}"><span class="row-ic">${ICON[ic]({ size: 20 })}</span><span><b>${t}</b><small>${sub}</small></span></button>`;
     body = `${brand}${dots(2)}<h1>Do you share a kitchen?</h1><p class="muted">Housemates only ever see food you mark as shared.</p>
       ${ch('alone', 'Just me', 'You can invite people later.', 'user')}${ch('create', 'I share. Start a household', "You'll get a code to send your housemates.", 'people')}${ch('join', 'I share. Join a household', 'A housemate gave you an invite code.', 'store')}
-      ${o.house === 'join' ? `<label class="fld"><span>Invite code</span><input type="text" id="ob-code" placeholder="SL-4821" autocomplete="off" value="${esc(o.code)}"></label>` : ''}
+      ${o.house === 'join' ? `<label class="fld"><span>Invite code</span><input type="text" id="ob-code" placeholder="EI-4821" autocomplete="off" value="${esc(o.code)}"></label>` : ''}
       <div class="btn-row"><button class="btn btn-quiet" data-act="ob" data-arg="places">Back</button><button class="btn btn-primary" data-act="ob-finish">Finish</button></div>`;
   }
   return `<div class="onboard"><div class="ob-card">${body}</div></div>`;
