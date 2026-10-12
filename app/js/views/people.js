@@ -25,12 +25,26 @@ export function signInPage() {
 }
 
 // List of users with the current one ticked, plus Add a user and Sign out.
-export function userList(app, { compact = false } = {}) {
+// others: leave the current user out (the card above already shows them).
+export function userList(app, { compact = false, others = false } = {}) {
   const cur = app.store.persona.id;
   const users = listUsers();
   return `<div class="user-list${compact ? ' compact' : ''}" role="menu" aria-label="Switch user">
-    ${users.map((u, i) => `<button class="user-row${u.id === cur ? ' on' : ''}" role="menuitemradio" aria-checked="${u.id === cur}" data-act="user" data-arg="${esc(u.id)}"><span class="avatar av-${i % 3}">${esc(u.initial)}</span><span class="ur-main"><b>${esc(u.name)}</b><small>${esc(about(u))}</small></span>${u.id === cur ? ICON.check({ size: 16, stroke: 2.6 }) : ''}</button>`).join('')}
+    ${users.map((u, i) => (others && u.id === cur ? '' : `<button class="user-row${u.id === cur ? ' on' : ''}" role="menuitemradio" aria-checked="${u.id === cur}" data-act="user" data-arg="${esc(u.id)}"><span class="avatar av-${i % 3}">${esc(u.initial)}</span><span class="ur-main"><b>${esc(u.name)}</b><small>${esc(about(u))}</small></span>${u.id === cur ? ICON.check({ size: 16, stroke: 2.6 }) : ''}</button>`)).join('')}
     <button class="user-row" role="menuitem" data-act="user-add"><span class="avatar add-av">${ICON.plus({ size: 16, stroke: 2.4 })}</span><span class="ur-main"><b>Add a user</b></span></button>
     <button class="user-row quiet" role="menuitem" data-act="sign-out"><span class="avatar add-av">${ICON.back({ size: 16 })}</span><span class="ur-main"><b>Sign out</b></span></button>
+  </div>`;
+}
+
+// Phone: one small card with who is signed in; tap it to switch user, add one or sign out.
+export function userCard(app) {
+  const cur = app.store.persona.id;
+  const users = listUsers();
+  const i = Math.max(0, users.findIndex((u) => u.id === cur));
+  const u = users[i] || { name: app.store.persona.name, initial: (app.store.persona.name || '?')[0] };
+  const open = !!app.ui.userMenu;
+  return `<div class="me-card${open ? ' open' : ''}">
+    <button class="me-head" data-act="user-menu" aria-expanded="${open}"><span class="avatar av-${i % 3}">${esc(u.initial)}</span><span class="ur-main"><small>Signed in as</small><b>${esc(app.store.state.profile.name || u.name)}</b></span><span class="chev" aria-hidden="true">${ICON.next({ size: 16 })}</span></button>
+    ${open ? userList(app, { others: true }) : ''}
   </div>`;
 }

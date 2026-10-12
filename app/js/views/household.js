@@ -4,7 +4,7 @@
 import { ICON, placeIcon, wordmark } from '../icons.js';
 import { esc, pageHead, secHead, toggle, aiBadge } from '../ui.js';
 import { phoneTitle } from './parts.js';
-import { userList } from './people.js';
+import { userCard } from './people.js';
 
 const KIND = { cold: 'Cold (fridge)', frozen: 'Frozen (freezer)', room: 'Room temperature' };
 
@@ -38,7 +38,7 @@ export function householdPage(app) {
   return `<div class="page household">
     ${phoneTitle(app, 'Household')}
     <div class="desk-only">${pageHead('Household & settings', `${esc(name)}'s household`, esc(s.house?.name || 'Lives alone'))}</div>
-    <section class="phone-only">${userList(app)}</section>
+    <section class="phone-only">${userCard(app)}</section>
     <div class="cols2">
       <div class="stack">
         <section>${secHead('Household')}${house}</section>
