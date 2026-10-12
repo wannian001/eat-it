@@ -59,7 +59,7 @@ function widgetOut(app) {
   const s = app.store.state, today = app.store.today;
   const on = modeOf(s, today) === 'out';
   return `<section class="w w-sm w-out">
-    ${on ? `<span class="wo-moved">${ICON.sprout({ size: 18 })}Moved to tomorrow</span>` : `<span class="wo-icon">${ICON.plate({ size: 22, stroke: 1.8 })}</span>`}
+    ${on ? `<span class="wo-moved">${ICON.fork({ size: 18 })}Eating out</span>` : `<span class="wo-icon">${ICON.plate({ size: 22, stroke: 1.8 })}</span>`}
     <span class="wo-title">Out tonight</span>
     <button class="switch${on ? ' on' : ''}" role="switch" aria-checked="${on}" aria-label="Out tonight" data-act="out"><i></i></button>
   </section>`;
@@ -84,7 +84,7 @@ function lockInner(app) {
   const n = eatFirst(s, today).length;
   const oldest = oldestFrozen(s);
   const names = s.settings.lockNames;
-  const clock = p.lockClock || app.store.clock;
+  const clock = app.store.clock;
   const ring = `<svg viewBox="0 0 44 44" width="48" height="48" aria-hidden="true"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--white)" stroke-width="4.5" opacity=".7"/><circle cx="22" cy="22" r="18" fill="none" stroke="var(--tomato)" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="${Math.min(1, n / 3) * 113} 113" transform="rotate(-90 22 22)"/></svg>`;
   let notif = '';
   if (due && !app.ui.lockDismissed) {
@@ -99,7 +99,7 @@ function lockInner(app) {
     const body = names ? `${list.slice(0, -1).join(', ')}${list.length > 1 ? ' and ' : ''}${list[list.length - 1]}.` : `${use.length} thing${use.length > 1 ? 's' : ''} to use today.`;
     notif = `<section class="notif" aria-label="Notification from Eat It!">
       <div class="nf-h">${appIcon({ size: 18, badge: false })}<span>Eat It!</span><small>now</small></div>
-      <div class="nf-b">${names ? `<span class="nf-pics">${use.slice(0, 3).map((x) => pic(x.food, { size: 30, lot: x.lot })).join('')}</span>` : ''}<div><b>Use today</b><small>${esc(body.charAt(0).toUpperCase() + body.slice(1))}</small></div></div>
+      <div class="nf-b">${names ? `<span class="nf-pics">${use.slice(0, 3).map((x) => pic(x.food, { size: 30, lot: x.lot })).join('')}</span>` : ''}<div><b>${use.some((x) => x.u <= 0) ? 'Use today' : 'Use soon'}</b><small>${esc(body.charAt(0).toUpperCase() + body.slice(1))}</small></div></div>
       <div class="btn-row"><button class="btn btn-primary sm" data-act="go" data-arg="home">Open</button><button class="btn btn-secondary sm" data-act="lock-dismiss">Later</button></div>
     </section>`;
   }
@@ -122,5 +122,5 @@ export function widgetsPage(app) {
 }
 
 export function lockPage(app) {
-  return `<div class="phone-only fill">${lockInner(app)}</div><div class="desk-only device-stage">${lockInner(app)}<p class="stage-note">Lock screen with one quiet nudge a day. Food names only show if you turn that on in Household & settings.</p></div>`;
+  return `<div class="phone-only fill">${lockInner(app)}</div><div class="desk-only device-stage">${lockInner(app)}<p class="stage-note">Lock screen with one quiet nudge a day. You can hide food names in Household.</p></div>`;
 }

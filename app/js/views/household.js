@@ -19,12 +19,12 @@ export function householdPage(app) {
   const house = s.house
     ? `<div class="card"><p class="card-t">${esc(s.house.name)}</p>
         <div class="members"><span class="mem"><span class="avatar av-0">${esc(name[0])}</span><b>${esc(name)}</b><small class="muted">(you)</small></span>${mates.map((m, i) => `<span class="mem"><span class="avatar av-${i + 1}">${esc(m.initial)}</span>${esc(m.name)}</span>`).join('') || '<span class="muted">Waiting for housemates to join.</span>'}</div>
-        ${s.house.code ? `<p class="flab">Invite code</p><div class="code-row"><span class="code">${esc(s.house.code)}</span><button class="btn btn-secondary sm" data-act="copy-code" data-arg="${esc(s.house.code)}">Copy</button></div><p class="small">Send this to a housemate. They type it when they set up Eat It!.</p>` : ''}
+        ${s.house.code ? `<p class="flab">Invite code</p><div class="code-row"><span class="code">${esc(s.house.code)}</span><button class="btn btn-secondary sm" data-act="copy-code" data-arg="${esc(s.house.code)}">Copy</button></div><p class="small">Send this to a housemate. They type it when they set up the app.</p>` : ''}
         ${ui.confirm === 'leave' ? `<div class="confirm-box"><p>Leave this household? Your own food stays with you. Shared items stay with the household.</p><div class="btn-row"><button class="btn btn-danger sm" data-act="house" data-arg="leave">Leave</button><button class="btn btn-quiet sm" data-act="confirm" data-arg="">Cancel</button></div></div>` : `<div class="btn-row"><button class="btn btn-quiet sm" data-act="confirm" data-arg="leave">Leave household</button></div>`}
       </div>`
     : `<div class="card"><p class="card-t">Just you</p><p class="muted">If you share a kitchen, housemates can see shared food and a shared list. Your own food stays private.</p>
         <div class="btn-row wrap"><button class="btn btn-primary sm" data-act="house" data-arg="create">Start a household</button><button class="btn btn-secondary sm" data-act="confirm" data-arg="join">Join with a code</button></div>
-        ${ui.confirm === 'join' ? `<div class="addrow"><input id="join-code" type="text" placeholder="SL-4821" autocomplete="off" aria-label="Invite code"><button class="btn btn-primary sm" data-act="house" data-arg="join">Join</button></div>` : ''}</div>`;
+        ${ui.confirm === 'join' ? `<div class="addrow"><input id="join-code" type="text" placeholder="EI-4821" autocomplete="off" aria-label="Invite code"><button class="btn btn-primary sm" data-act="house" data-arg="join">Join</button></div>` : ''}</div>`;
   const sharing = mates.length ? `<section>${secHead('What your housemates can see')}<ul class="set">
       ${setRow('fridge', 'Shared food and how much is left', 'Needed for a shared fridge, so it\'s always on.', toggle('noop', '', true, 'Shared food', true))}
       ${setRow('cart', 'The shared list and who\'s getting what', 'Always on.', toggle('noop', '', true, 'Shared list', true))}
@@ -57,8 +57,8 @@ export function householdPage(app) {
         <section>${secHead('Outside the app')}<div class="btn-row"><button class="btn btn-secondary" data-act="go" data-arg="widgets">${ICON.grid({ size: 18 })}Widgets</button><button class="btn btn-secondary" data-act="go" data-arg="lock">${ICON.phone({ size: 18 })}Lock screen</button></div></section>
         <section>${secHead('Your data')}<ul class="set">
           ${setRow('download', 'Download a copy', 'Everything you recorded, as one file.', '<button class="chip-btn" data-act="export">Download</button>')}
-          ${setRow('undo', p.builtin ? 'Start over' : 'Clear everything on this device', p.builtin ? 'Back to the original fridge, dated from today.' : 'Your food, places and settings.', `<button class="chip-btn" data-act="confirm" data-arg="clear">${p.builtin ? 'Start over' : 'Clear'}</button>`)}
-          ${p.builtin ? '' : setRow('user', 'Remove this user', 'Takes them off this device.', '<button class="chip-btn" data-act="confirm" data-arg="remove">Remove</button>')}
+          ${app.store.adapter.canClear === false ? '' : setRow('undo', p.builtin ? 'Start over' : 'Clear everything on this device', p.builtin ? 'Back to the original fridge, dated from today.' : 'Your food, places and settings.', `<button class="chip-btn" data-act="confirm" data-arg="clear">${p.builtin ? 'Start over' : 'Clear'}</button>`)}
+          ${p.builtin || app.store.adapter.canClear === false ? '' : setRow('user', 'Remove this user', 'Takes them off this device.', '<button class="chip-btn" data-act="confirm" data-arg="remove">Remove</button>')}
         </ul>${confirmClear}${store.error ? `<p class="err">Not saved: ${esc(store.error.message)}</p>` : ''}</section>
         <p class="phone-only brand-foot">${wordmark('sm')}</p>
       </div>

@@ -27,9 +27,17 @@ function transcriptHtml(text) {
 const wave = () => `<span class="wave" aria-hidden="true">${Array.from({ length: 13 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}</span>`;
 const level = (n) => `<span class="lvl" aria-hidden="true">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
 
-// Which foods need a question: at home, and no number was said for them.
+// Which foods need a question: at home, and no number was said for them. "A packet of eggs" when
+// the eggs are one carton of 8 (not bags) is asked about too, rather than taking the whole carton.
+function needsAsk(s, it) {
+  const lots = lotsOf(s, it.food);
+  if (!lots.length) return false;
+  if (!it.exact) return true;
+  return it.unit === 'bag' && !lots.some((l) => l.bag) && lots.some((l) => l.unit === 'pc' && l.qty > 1);
+}
 export function questionsFor(store, items) {
-  return items.filter((it) => !it.exact && countOf(store.state, it.food) > 0)
+  const seen = new Set();
+  return items.filter((it) => needsAsk(store.state, it) && !seen.has(it.food) && seen.add(it.food))
     .map((it) => ({ food: it.food, lot: lotsOf(store.state, it.food)[0] }));
 }
 
@@ -53,7 +61,7 @@ export function ateResult(store, items, answers = {}, day = null) {
 
 function inner(app) {
   const a = app.ui.ate;
-  const close = `<button class="round light" data-act="go" data-arg="home" aria-label="Close">${ICON.close({ size: 18 })}</button>`;
+  const close = `<button class="round light" data-act="ate-close" aria-label="Close">${ICON.close({ size: 18 })}</button>`;
 
   if (a.phase === 'thinking') {
     return `<div class="screen ate">
@@ -100,6 +108,7 @@ function inner(app) {
       <div class="dock col">
         ${rows.length ? '<button class="btn btn-primary wide" data-act="ate-done">Done</button>' : ''}
         <button class="btn btn-secondary wide" data-act="listen">Say it again</button>
+        ${rows.length ? '' : '<button class="link" data-act="ate-type-again">Type it instead</button>'}
       </div>
     </div>`;
   }

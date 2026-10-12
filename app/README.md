@@ -87,14 +87,14 @@ AI 把这句话对上家里有的东西。说了具体数量的（"two tomatoes"
 
 | 页面 | 地址 | 做什么 |
 |---|---|---|
-| Home | `#/` | Eat first（最该先吃的三样）、打开的冰箱（含橱柜等）、"Ate at home today?"。只放这些，其他功能在各自的页面 |
-| Food at home | `#/food` | 按地方分页，图 / 列表（电脑上是表格），搜索，Mine / Shared，编辑地方，拍照估有多满 |
-| Add food | `#/add` `#/ways` `#/scan` `#/review` | 六种添加方式和核对 |
-| I ate | `#/ate` | 语音出库 |
-| Week calendar | `#/week` | 一周七张日卡（照个人系统"本周"页的样子）：这天要吃掉的（Eat by）、冷冻满 4 周的那袋、今天要不要解冻；点开今天或以前的日子记吃饭，点开以后的日子提前标出哪天不在家吃；底下是 Coming up |
-| Shopping list | `#/shop` | 和室友共享的清单、谁去买、买之前的提醒（家里已有、室友在买、放不下）、家里还有多少空间 |
-| Household | `#/settings` | 家庭成员和邀请码、同住的人能看到什么、地方、提醒、邮件 / 超市账户、个人资料、数据 |
-| 桌面小组件、锁屏 | `#/widgets` `#/lock` | 画布 05/06 的预览，点了会真的改冰箱 |
+| Home | `#` | Eat first（最该先吃的三样）、打开的冰箱（含橱柜等）、"Ate at home today?"。只放这些，其他功能在各自的页面 |
+| Food at home | `#food` | 按地方分页，图 / 列表（电脑上是表格），搜索，Mine / Shared，编辑地方，拍照估有多满 |
+| Add food | `#add` `#ways` `#scan` `#review` | 六种添加方式和核对 |
+| I ate | `#ate` | 语音出库 |
+| Week calendar | `#week` | 一周七张日卡（照个人系统"本周"页的样子）：这天要吃掉的（Eat by）、冷冻满 4 周的那袋、今天要不要解冻；点开今天或以前的日子记吃饭，点开以后的日子提前标出哪天不在家吃；底下是 Coming up |
+| Shopping list | `#shop` | 和室友共享的清单、谁去买、买之前的提醒（家里已有、室友在买、放不下）、家里还有多少空间 |
+| Household | `#settings` | 家庭成员和邀请码、同住的人能看到什么、地方、提醒、邮件 / 超市账户、个人资料、数据 |
+| 桌面小组件、锁屏 | `#widgets` `#lock` | 画布 05/06 的预览，点了会真的改冰箱 |
 
 | 电脑：Home | 电脑：周历 |
 |---|---|
@@ -153,11 +153,11 @@ python3 -m http.server 8000 --directory <这个仓库的文件夹>
 - 要存到自己的服务器，在 `js/config.js` 填 `store`。服务器只需要两个接口：
 
 ```
-GET  {store}/events?person=me   ->  { "events": [ ...按时间顺序 ] }
-POST {store}/events             <-  { "person": "me", "event": { ... } }
+GET  {store}/events?person=may  ->  { "events": [ ...按时间顺序 ] }
+POST {store}/events             <-  { "person": "may", "event": { ... } }
 ```
 
-每个用户的记录都会以各自的用户 id 存到那里。
+每个用户的记录都会以各自的用户 id（`john`、`may`，新用户是 `u-…`）存到那里。用服务器存储时，Start over 和 Remove user 不可用（服务器上的记录只追加，不删除）。
 
 **AI 理解（可选）**：在 `js/config.js` 填 `ai`，说的话会发给那个服务器（比如你自己系统里的 AI）：
 
@@ -174,7 +174,7 @@ POST {ai}  { "text": "说的那句话", "stock": [{ "food": "curry", "name": "Cu
 cd app && node --test
 ```
 
-Node 18 以上，无依赖。20 个测试，覆盖日期标签、Eat first、语音解析、追问和回答、AI 服务器和退回本地、分袋、出去吃和提醒、手动改库存、周历、撤销、解冻 / 冷冻 / 扔掉、地方和设置、新用户设置、起始数据对齐到第一天、HTTP 存储。
+Node 18 以上，无依赖（`npm test` 也行）。26 个测试，覆盖日期标签、Eat first、语音解析、追问和回答、AI 服务器和退回本地、分袋、出去吃和提醒、手动改库存、周历、撤销、解冻 / 冷冻 / 扔掉、地方和设置、新用户设置、起始数据对齐到第一天、HTTP 存储；`tests/review.test.js` 专门防 10-13 审查发现的问题（"egg noodles" 不能动鸡蛋、"Plenty left" 不能变多、同一样东西只问一次、AI 返回克数要改成追问、移出冷冻室要解冻、坏的服务器数据不能卡住启动）。
 
 ## 10-12 改了什么
 

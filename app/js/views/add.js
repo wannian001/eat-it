@@ -28,7 +28,7 @@ const METHOD_ICON = { receipt: 'receipt', photo: 'camera', email: 'mail', barcod
 
 export function waysPage(app) {
   const s = app.store.state;
-  const desc = { email: s.links.email ? 'Connected. New receipts show up under Needs a look.' : null, account: s.links.account ? 'Linked. New online orders show up under Needs a look.' : null };
+  const desc = { email: s.links.email ? 'Connected. Tap to see new receipts.' : null, account: s.links.account ? 'Linked. New online orders come in by themselves.' : null };
   return `<div class="page ways">
     <header class="top phone-only"><button class="round" data-act="go" data-arg="add" aria-label="Back">${ICON.back({ size: 18 })}</button><h1>Add food</h1></header>
     <div class="desk-only">${pageHead('Add food', 'How did it come in?', 'Whichever way you add food, you can fix it later. Anything AI reads or recognises is checked by you before it goes in.')}</div>
@@ -142,7 +142,7 @@ function sourcePanel(app) {
   if (a.src === 'email') {
     const E = p.email;
     const total = E.lines.reduce((t, l) => t + parseFloat(l.price || 0), 0).toFixed(2);
-    return `<div class="mail"><div class="mail-h"><b>${esc(E.from)}</b><span>${esc(fmtDay(E.when))} · ${esc(E.time)}</span></div><p class="mail-s">${esc(E.subject)}</p>${E.lines.map((l) => `<div class="mline"><span>${esc(l.raw)}</span><span>$${esc(l.price)}</span></div>`).join('')}<div class="mline tot"><span>Total</span><span>$${total}</span></div><p class="mail-f">${aiBadge}Read by Eat It!. Only this email was opened.</p></div>`;
+    return `<div class="mail"><div class="mail-h"><b>${esc(E.from)}</b><span>${esc(fmtDay(E.when))} · ${esc(E.time)}</span></div><p class="mail-s">${esc(E.subject)}</p>${E.lines.map((l) => `<div class="mline"><span>${esc(l.raw)}</span><span>$${esc(l.price)}</span></div>`).join('')}<div class="mline tot"><span>Total</span><span>$${total}</span></div><p class="mail-f">${aiBadge}Only this email was opened.</p></div>`;
   }
   if (a.src === 'barcode') return `<div class="shot-ph tall">${pic(p.barcode.food, { size: 96 })}<code>${esc(p.barcode.raw)}</code></div>`;
   if (a.src === 'photo') {
@@ -191,7 +191,7 @@ function lineHtml(app, line, first) {
     </span>`;
   const unsure = line.unsure
     ? `<div class="rq"><span class="hint">${line.unsure.length ? `AI isn't sure: ${esc(foodName(line.food, 2).toLowerCase())} or ${esc(line.unsure.map((x) => foodName(x, 2).toLowerCase()).join(' or '))}?` : 'AI isn\'t sure about this line.'}</span>
-       <span class="chips">${[line.food, ...line.unsure].map((alt, i) => `<button class="chip${line.answer === alt ? ' on' : ''}" data-act="answer" data-arg="${line.key}|${esc(alt)}" aria-pressed="${line.answer === alt}">${i === 0 ? 'Yes' : esc(food(alt).name)}</button>`).join('')}</span></div>`
+       <span class="chips">${[line.food, ...line.unsure].map((alt, i) => `<button class="chip${line.answer === alt ? ' on' : ''}" data-act="answer" data-arg="${line.key}|${esc(alt)}" aria-pressed="${line.answer === alt}">${esc(food(alt).name)}</button>`).join('')}</span></div>`
     : '';
   const nonfood = line.nonfood && !line.keep
     ? `<div class="rq"><span class="hint">AI thinks this isn't food.</span><span class="chips"><button class="chip on" data-act="line-skip" data-arg="${line.key}">Skip it</button><button class="chip" data-act="line-keep" data-arg="${line.key}">It's food</button></span></div>`
@@ -218,9 +218,9 @@ export function reviewPage(app) {
   const n = lines.filter(kept).length;
   const src = ui.add.src;
   const title = src === 'photo' ? 'Check what AI found' : src === 'email' ? 'Check your email receipt' : src === 'receipt' ? 'Check your receipt' : 'New food';
-  const sub = src === 'photo' ? `${aiBadge}recognised these in your photo. AI can mistake one food for another and can't read dates from a photo, so check each one.`
-    : src === 'email' ? `${aiBadge}turned this email into a list. Email receipts don't show use-by dates, so add those from the pack if you can.`
-    : src === 'receipt' ? `${aiBadge}read each line. Where each one goes is a guess. Receipts don't show use-by dates, so add those from the pack if you can.`
+  const sub = src === 'photo' ? `${aiBadge}found these in your photo. Check each one.`
+    : src === 'email' ? `${aiBadge}made this list from your email. Check each line.`
+    : src === 'receipt' ? `${aiBadge}read each line. Check each one; add dates from the pack.`
     : 'Check the list, then put it all in.';
   const btn = ui.add.lines.length ? (need ? `Check ${need} line${need > 1 ? 's' : ''} first` : `Put it all in · ${n}`) : 'Nothing to add';
   return `<div class="page review">

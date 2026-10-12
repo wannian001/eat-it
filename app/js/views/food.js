@@ -31,7 +31,7 @@ function tableHtml(app, place) {
     : (a, b) => (urgency(a.date, today) ?? 999) - (urgency(b.date, today) ?? 999));
   const rows = lots.map((l) => {
     const whose = s.house ? (l.owner === 'shared' ? 'Shared' : 'Mine') : 'Mine';
-    const spot = SPOT_NAMES[effSpot(l, place, p)] || place.sub || '';
+    const spot = SPOT_NAMES[effSpot(l, place, p)] || '';
     return `<button class="frow" data-act="lot" data-arg="${esc(l.id)}">
       <span class="fn">${pic(l.food, { bag: l.bag, size: 32, lot: l })}<span><b>${esc(foodName(l.food, l.unit === 'pc' ? l.qty : 1, l))}</b><small>${esc([amountText(l), s.house ? whose : null].filter(Boolean).join(' · '))}</small></span></span>
       <span class="fx">${esc(amountText(l))}</span><span class="fx">${esc(whose)}</span><span class="fx">${esc(spot)}</span>
@@ -39,7 +39,7 @@ function tableHtml(app, place) {
     </button>`;
   }).join('');
   const others = s.house && app.ui.food.own === 'all' && !app.ui.food.q
-    ? (p.others || []).filter((o) => o.place === place.id).map((o) => `<div class="frow other"><span class="fn"><span class="avatar av-1 sm-av">${esc(o.who[0])}</span><span><b>${esc(o.who)}'s food · ${o.n} items</b><small>Only ${esc(o.who)} sees what they are</small></span></span><span class="fx"></span><span class="fx">${esc(o.who)}</span><span class="fx"></span><span class="fd"><span class="lock-tag">${ICON.lock({ size: 12 })}Private</span></span></div>`).join('')
+    ? (p.others || []).filter((o) => o.place === place.id).map((o) => `<div class="frow other"><span class="fn"><span class="avatar av-1 sm-av">${esc(o.who[0])}</span><span><b>${esc(o.who)}'s food · ${o.n} item${o.n === 1 ? '' : 's'}</b><small>Only ${esc(o.who)} sees what they are</small></span></span><span class="fx"></span><span class="fx">${esc(o.who)}</span><span class="fx"></span><span class="fd"><span class="lock-tag">${ICON.lock({ size: 12 })}Private</span></span></div>`).join('')
     : '';
   const empty = !rows && !others ? `<div class="frow other"><span class="fn">${app.ui.food.q ? `Nothing called "${esc(app.ui.food.q)}" here.` : 'Nothing here yet.'}</span></div>` : '';
   return `<div class="sec-h"><h2>${lots.length} item${lots.length === 1 ? '' : 's'}</h2><span class="muted sm-t">${frozen ? 'Oldest first' : 'Soonest first'}</span></div>
@@ -66,7 +66,7 @@ export function foodPage(app) {
   const tabs = `<div class="seg" role="tablist">${s.places.map((pl) => `<button role="tab" aria-selected="${pl.id === place.id}" class="${pl.id === place.id ? 'on' : ''}" data-act="place" data-arg="${esc(pl.id)}">${placeIcon(pl, { size: 16 })}${esc(pl.name)}</button>`).join('')}</div>`;
   const view = `<div class="seg small">${[['picture', 'Picture'], ['list', 'List']].map(([k, t]) => `<button class="${ui.food.view === k ? 'on' : ''}" data-act="food-view" data-arg="${k}" aria-pressed="${ui.food.view === k}">${t}</button>`).join('')}</div>`;
   const filt = s.house ? `<div class="chips">${[['all', 'All'], ['me', 'Mine'], ['shared', 'Shared']].map(([k, t]) => `<button class="chip${ui.food.own === k ? ' on' : ''}" data-act="own" data-arg="${k}" aria-pressed="${ui.food.own === k}">${t}</button>`).join('')}</div>` : '';
-  const search = `<label class="search">${ICON.search({ size: 16 })}<input id="food-q" type="search" placeholder="${ui.food.view === 'picture' ? 'Find food on the shelves' : 'Search food'}" value="${esc(ui.food.q)}" aria-label="Search food" data-input="food-q"></label>`;
+  const search = `<label class="search">${ICON.search({ size: 16 })}<input id="food-q" type="search" placeholder="Find food" value="${esc(ui.food.q)}" aria-label="Search food" data-input="food-q"></label>`;
   return `<div class="page food">
     ${phoneHeader(app, `What's in the ${place.name.toLowerCase()}`)}
     <div class="desk-only">${pageHead('Food at home', `What's in the ${esc(place.name.toLowerCase())}`, `Check from anywhere, no need to open it. <span class="muted">${esc(KIND[place.kind])}${place.sub ? ` · ${esc(place.sub)}` : ''}</span>`, `<button class="btn btn-primary" data-act="go" data-arg="add">${ICON.plus({ size: 18, stroke: 2.4 })}Add food</button>`)}</div>

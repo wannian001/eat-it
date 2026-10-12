@@ -121,7 +121,8 @@ export function placesSheet(app) {
   const rm = app.ui.sheet.remove;
   const rows = s.places.map((pl) => {
     const n = count(pl.id);
-    const others = s.places.filter((x) => x.id !== pl.id);
+    const rank = (x) => (x.kind === pl.kind ? 0 : x.kind === 'frozen' ? 2 : 1);
+    const others = s.places.filter((x) => x.id !== pl.id).sort((a, b) => rank(a) - rank(b));
     const confirm = rm === pl.id
       ? `<div class="confirm-box">${n ? `${n} item${n === 1 ? ' is' : 's are'} here. Move ${n === 1 ? 'it' : 'them'} to <select id="rm-to" aria-label="Move food to">${others.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select>` : 'Nothing is stored here.'}
          <div class="btn-row"><button class="btn btn-danger sm" data-act="place-remove-go" data-arg="${esc(pl.id)}"${n && !others.length ? ' disabled' : ''}>${n ? 'Move and remove' : 'Remove'}</button><button class="btn btn-quiet sm" data-act="place-remove-cancel">Keep it</button></div></div>`
@@ -189,8 +190,7 @@ export function emailSheet(app) {
   if (s.links.email) {
     const E = p.email;
     return wrap(`<h2 class="sheet-title">AI checked your inbox</h2><p class="sheet-sub">${aiBadge}Emails from the last 7 days, only from: ${esc(s.links.senders.join(', ') || 'no senders picked')}.</p>
-      ${!E || s.done.email ? '<div class="card"><p>No new receipts.</p></div>' : `<ul class="rows"><li><button class="row" data-act="review" data-arg="email"><span class="row-ic">${ICON.mail({ size: 20 })}</span><span class="r-main"><b>${esc(E.subject)}</b><small>${esc(E.from)} · ${esc(fmtDay(E.when))} · ${E.lines.length} lines</small></span><span class="mini">Review</span></button></li></ul>`}
-      <p class="small">New receipts also show up under Needs a look on Home.</p>`, { label: 'Email receipts' });
+      ${!E || s.done.email ? '<div class="card"><p>No new receipts.</p></div>' : `<ul class="rows"><li><button class="row" data-act="review" data-arg="email"><span class="row-ic">${ICON.mail({ size: 20 })}</span><span class="r-main"><b>${esc(E.subject)}</b><small>${esc(E.from)} · ${esc(fmtDay(E.when))} · ${E.lines.length} lines</small></span><span class="mini">Review</span></button></li></ul>`}`, { label: 'Email receipts' });
   }
   return wrap(`<h2 class="sheet-title">Let AI read receipts in your email?</h2>
     <p class="sheet-sub">${aiBadge}Eat It! looks for grocery receipts in your inbox and turns them into a list you check. Nothing is added until you say so.</p>
