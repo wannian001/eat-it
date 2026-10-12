@@ -1,72 +1,68 @@
 # Eat It! 可运行版（app/）
 
-按 Raina 的高保真画布《Eat It! Hi-fi Prototype》v2 页（标题 "Eat It! v3"）的 7 块画板做成的手机网页 App。真的能用：放进去、吃掉、用掉都会记下来，刷新后还在。纯前端，没有后端，不需要安装或构建。
+一个真的能用的网页 App。功能用 v0.2 原型的一整套：今天、家里的食物、六种添加方式、核对小票、周计划、购物、家庭与设置、账户、首次设置、演示步骤。界面全部换成 Raina 高保真画布（《Eat It! Hi-fi Prototype》，"Eat It! v3"）的设计。
 
-> 2026-10-12 嘉阔用 Claude Code 生成代码并审阅。视觉只用 `docs/VISUAL-SPEC.md` v3 的 token 和 `assets/stickers/` 的贴纸，没有新增屏幕以外的功能（无热量、食谱、待办）。
+- **手机**（窄于 900 px）：就是画布上的样子，包括打开的冰箱、Eat first、拍照扫描、语音"I ate"、桌面小组件和锁屏，底部再加一排标签栏。
+- **电脑**：沿用 v0.2 网站的布局，左边导航，页面宽、两栏，弹层从右边滑出。
+
+纯前端，不需要安装或构建。放进去、吃掉、用掉、改计划，都会记下来，刷新后还在。
+
+> 2026-10-12 嘉阔用 Claude Code 生成代码并审阅。视觉只用 `docs/VISUAL-SPEC.md` v3 的 token 和 `assets/stickers/` 的贴纸。不放 v0.2 设计注释里的参与者引语，也不加热量、食谱、待办。
 
 ## 打开
 
-在**仓库根目录**（不是 `app/`）起一个静态服务器，因为贴纸在 `../assets/stickers/`：
-
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 8000 --directory <这个仓库的文件夹>
 ```
 
-然后打开 <http://localhost:8000/app/>。
+然后打开 <http://localhost:8000/app/>。贴纸在 `../assets/stickers/`，所以服务器要从仓库根目录起，不能从 `app/` 起。
 
-- 电脑上会显示成一部手机；手机上打开就是全屏。同一 Wi-Fi 下手机访问 `http://电脑的IP:8000/app/`，再"添加到主屏幕"。
-- `?p=john`、`?p=may`、`?p=me` 直接切换人物；`?frame=0` 去掉电脑上的手机外框（录屏用）。
-- 点右上角头像：切换 John / May / You，打开"Widgets""Lock screen"两页，重置演示数据。
+- `?p=john`、`?p=may`、`?p=me` 直接切换人物。在电脑上点左下角，手机上点"Me"标签，也能切换。
+- **演示步骤**：电脑左下角的"演示步骤"、手机"Me"页底部，是 v0.2 演示栏的那几步，加上分镜 v2 的场景。每一步都在内存里跑，不会动到保存的数据，录屏可以反复点。
+- 同一 Wi-Fi 下，手机访问 `http://电脑的IP:8000/app/`，再"添加到主屏幕"。
 
-## 画板对照
+## 页面
 
-| 画板 | 地址 | 文件 |
+| 页面 | 地址 | 来源 |
 |---|---|---|
-| 01 My fridge（John）、02 Our fridge（May） | `#/` | `js/views/fridge.js` |
-| 点食物弹出的卡片（Used it / Used some） | `#/` 上的弹层 | `js/views/fridge.js` `foodSheet` |
-| 03 Add：拍照 → New food 清单 → Put it all in | `#/add` → `#/review` | `js/views/add.js` |
-| 04 I ate：语音 → Got it | `#/ate` | `js/views/ate.js` |
-| 05 桌面小组件 | `#/widgets` | `js/views/phone.js` |
-| 06 锁屏 + 提醒（Thaw tonight / Later） | `#/lock` | `js/views/phone.js` |
-| 07 品牌：图标、字标 | 头像弹层顶部、`icon.svg` | `js/icons.js` |
+| Home：问候、Eat first、打开的冰箱（含橱柜等其他地方）、今晚、需要看一眼、空间 | `#/` | 画布 01/02 + v0.2 Today |
+| Food at home：按地方分页，图 / 列表（电脑上是表格）、搜索、Mine/Shared、编辑地方、拍照估容量 | `#/food` | v0.2 Food + 画布冰箱 |
+| Add food：六种方式（小票、拍照、邮件、条码、手动、超市账户）；手机直接进拍照页 | `#/add` `#/ways` `#/scan` | v0.2 Add + 画布 03 |
+| 核对：电脑上左边是小票 / 邮件 / 照片原件，右边逐行核对（AI 不确定的、非食物、分袋、放哪、谁的、包装日期） | `#/review` | v0.2 核对页 + 画布 03 |
+| I ate：语音 → Got it | `#/ate` | 画布 04 |
+| Week plan：7 天，每天做饭 / 出去吃 / 太忙；不做饭那天的菜挪到下一个做饭日，放不到那天的会提醒 | `#/plan` | v0.2 |
+| Shopping：共享清单、我去买、买之前的提醒（家里已有、室友在买、放不下）、一起去买 | `#/shop` | v0.2 |
+| Household：家庭成员和邀请码、室友能看到什么、地方、提醒、邮件 / 超市账户、个人资料、数据 | `#/settings` | v0.2 设置 + 账户 |
+| 桌面小组件、锁屏 | `#/widgets` `#/lock` | 画布 05/06 |
+| 首次设置（只有 "You"） | — | v0.2 注册流程，去掉了邮箱验证码 |
 
 ## 哪些是真的，哪些是演示
 
 | 功能 | 现在 |
 |---|---|
-| 冰箱、Eat first、列表视图、日期标签 | 真的，按记录实时算 |
-| Used it / Used some、改估计日期、分袋、冷冻 4 周提醒、Thaw tonight、Later、Out tonight | 真的，会记下来 |
-| 语音"I ate …" | "You" 用浏览器自带的语音识别（Chrome、Safari），解析是规则匹配，不用 AI；John 和 May 播放分镜里那句话，方便录屏每次一样 |
-| 拍照 / 小票识别 | **演示**：John、May 返回画布上那几行；"You" 还没有识别器，改成点选食物 |
-| 桌面小组件、锁屏 | 网页不能放真小组件，这两页是预览，但点了会改冰箱 |
-| 室友同步 | 演示数据；室友的东西只显示数量 |
+| 冰箱、Eat first、日期标签、用掉、剩多少、开封、冷冻 / 解冻、换地方、扔掉、撤销 | 真的 |
+| 周计划、"今晚出去吃"、提醒推迟、购物清单、地方、设置、家庭 | 真的（记录在本机） |
+| 语音 "I ate …" | "You" 用浏览器自带的语音识别，解析是规则匹配，不用 AI；John 和 May 播放分镜里那句话 |
+| 拍照、小票、邮件、条码识别 | **演示**：John、May 返回固定的几行；"You" 还没有识别器，改成点选 |
+| 拍照估冰箱有多满 | **演示**：数字是模拟的，可以拖动修正 |
+| 室友、邀请码、"一起去买" | 演示数据，不会真的发给谁 |
+| 桌面小组件、锁屏 | 网页做不了真小组件，这两页是预览，点了会改冰箱 |
 
-John 和 May 的日期固定在 2026-10-10（周六，和画布一致），"You" 用今天的真实日期。
+John 和 May 的日期固定在 2026-10-10（周六，和画布一致）。"You" 用今天的真实日期。
 
 ## 数据怎么存（以后接自己的服务器用）
 
-冰箱不直接存，存的是一条条只追加的事件，打开时按顺序重放（`js/state.js`）。改错也是再加一条，不改旧的。
+所有东西都存成只追加的事件，打开时按顺序重放（`js/state.js` 开头列了全部事件类型）。改错也是再加一条，`undo` 指向要取消的那条，旧记录不改。
 
-| 事件 | 字段 | 什么时候 |
-|---|---|---|
-| `put` | `lines: [{ food, qty, unit, date, bags, owner, spot }]` | Put it all in |
-| `use` | `lot, how: 'one' \| 'some'` | Used it / Used some、小组件点一下 |
-| `ate` | `items: [{ food, qty, unit, part }]` | 语音 Done |
-| `fix` | `lot, on` | 改估计日期 |
-| `thaw` | `lot, spot` | Thaw tonight |
-| `out` | `on` | Out tonight 开关 |
-| `snooze` | `until` | 提醒点 Later |
-
-每条事件都有 `id`、`at`（ISO 时间）、`day`（`YYYY-MM-DD`）。`date` 的 `kind` 是 `use_by`、`best_before`、`est`（估计，必须标 "~"）或 `frozen`。
-
-默认存在这台设备的 localStorage。要存到自己的服务器，在 `js/config.js` 填 `store`，服务器只需要两个接口：
+- 默认存在这台设备的 localStorage。
+- 要存到自己的服务器，在 `js/config.js` 填 `store`。服务器只需要两个接口：
 
 ```
 GET  {store}/events?person=me   ->  { "events": [ ...按时间顺序 ] }
 POST {store}/events             <-  { "person": "me", "event": { ... } }
 ```
 
-只有 "You" 会用服务器，John 和 May 永远是本地演示。头像弹层里的 "Export my data" 可以导出 JSON。仓库里不放任何服务器代码，也不放任何人的真实数据。
+只有 "You" 会用服务器，John 和 May 永远是本地演示。Household 页的 "Download a copy" 可以导出 JSON。仓库里不放任何服务器代码，也不放任何人的真实数据。
 
 ## 测试
 
@@ -74,11 +70,11 @@ POST {store}/events             <-  { "person": "me", "event": { ... } }
 cd app && node --test
 ```
 
-Node 18 以上，无依赖。覆盖日期标签、Eat first 排序、语音解析、分袋、解冻、提醒、HTTP 存储。
+Node 18 以上，无依赖。12 个测试，覆盖日期标签、Eat first、语音解析、分袋、计划挪动和提醒、撤销、解冻 / 冷冻 / 扔掉、地方和设置、首次设置、HTTP 存储。
 
 ## 已知限制
 
-- Chrome 的语音识别会把声音交给浏览器的识别服务，和概念里"语音只在手机上处理"不一样，视频和报告里别把这个原型当证据。
-- 估计天数（番茄约 1 周等）是我们的猜测，界面都标了 "our guess"；只有剩菜 2–3 天有来源（UQ，见 VISUAL-SPEC）。放进视频前要按 FSANZ 核对。
+- Chrome 的语音识别会把声音交给浏览器的识别服务，和概念里"语音只在手机上处理"不一致。视频和报告里不要拿这个原型当证据。
+- 估计天数（番茄约 1 周等）和储存小贴士都是我们的猜测，界面标了 "our guess" / "guide"。只有剩菜 2–3 天有来源（UQ，见 VISUAL-SPEC）。放进视频前要按 FSANZ 核对。
+- 画布只给了手机的 7 屏。电脑版的排版和手机版底部的标签栏是按 v0.2 补的，需要 Raina 确认。
 - 字体从 Google Fonts 加载，断网时退回系统字体；还没做离线缓存。
-- 本地用 `python3 -m http.server` 时浏览器可能缓存旧的 JS，改了代码看不到就强制刷新。

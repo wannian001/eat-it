@@ -5,6 +5,7 @@
 //   best_before  quality date -> amber outline tag, never "throw it out"
 //   est          no date on the pack, the app guesses -> grey dashed tag with "~"
 //   frozen       day it went into the freezer -> light blue tag, weeks in the freezer
+//   none         dry food with no useful date ("Keeps for months")
 
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const WD_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -19,6 +20,10 @@ function utc(day) {
 export function todayLocal(now = new Date()) {
   const p = (n) => String(n).padStart(2, '0');
   return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+}
+
+export function clockLocal(now = new Date()) {
+  return `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
 
 export function addDays(day, n) {
@@ -37,8 +42,15 @@ const parts = (day) => {
 
 export const weekday = (day) => WD[parts(day).w];
 export const dayMonth = (day) => `${parts(day).d} ${MON[parts(day).m]}`;
-export const receiptDay = (day) => `${WD[parts(day).w]} ${parts(day).d} ${MON[parts(day).m]}`.toUpperCase();
+export const fmtDay = (day) => `${weekday(day)} ${dayMonth(day)}`;
+export const receiptDay = (day) => fmtDay(day).toUpperCase();
 export const longDay = (day) => `${WD_LONG[parts(day).w]} ${parts(day).d} ${MON_LONG[parts(day).m]}`;
+export const relDay = (day, today) => (day === today ? 'today' : day === addDays(today, 1) ? 'tomorrow' : fmtDay(day));
+
+export function greeting(clock) {
+  const h = parseInt(clock, 10);
+  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+}
 
 // "Sun" for the next two days, "17 Oct" within a month, then "Nov", then "Mar 2027".
 function when(on, today) {
@@ -75,6 +87,7 @@ export function frozenWeeks(on, today) {
 // Returns { text, kind } where kind picks the tag style.
 export function dateTag(date, today, ctx = 'tile') {
   if (!date) return { text: '', kind: 'none' };
+  if (date.kind === 'none') return { text: date.note || 'Keeps for months', kind: 'none' };
   const d = daysBetween(today, date.on);
   switch (date.kind) {
     case 'use_by':
@@ -89,18 +102,21 @@ export function dateTag(date, today, ctx = 'tile') {
     }
     case 'frozen': {
       const f = frozenFor(date.on, today);
-      return { text: ctx === 'sheet' ? (f === 'Today' ? 'Frozen today' : `Frozen ${f}`) : f, kind: 'frozen' };
+      return { text: ctx === 'sheet' || ctx === 'card' ? (f === 'Today' ? 'Frozen today' : `Frozen ${f}`) : f, kind: 'frozen' };
     }
     default:
       return { text: '', kind: 'none' };
   }
 }
 
+// The last day it's good, for planning: a use by / best before day, or the end of an estimate.
+export const lastGood = (date) => (date && date.on && date.kind !== 'frozen' ? date.on : null);
+
 // How soon something should be eaten, in days. Best before is a quality date, so it ranks
-// 1.5 days later than a use-by or an estimate on the same day. Frozen food has no urgency here;
-// the oldest bag gets its own nudge instead.
+// 1.5 days later than a use-by or an estimate on the same day. Frozen and dry food have no
+// urgency here; the oldest frozen bag gets its own nudge instead.
 export function urgency(date, today) {
-  if (!date || date.kind === 'frozen') return null;
+  if (!date || date.kind === 'frozen' || date.kind === 'none' || !date.on) return null;
   const d = daysBetween(today, date.on);
   return date.kind === 'best_before' ? d + 1.5 : d;
 }
@@ -110,7 +126,7 @@ export const kindOrder = (date) => KIND_ORDER[date?.kind] ?? 3;
 
 // Small coloured dot on fridge tiles: red = use by within 2 days, amber = best before today or past.
 export function dot(date, today) {
-  if (!date) return null;
+  if (!date || !date.on || date.kind === 'frozen') return null;
   const d = daysBetween(today, date.on);
   if (date.kind === 'use_by' && d <= 2) return 'red';
   if (date.kind === 'best_before' && d <= 0) return 'amber';

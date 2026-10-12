@@ -1,5 +1,5 @@
 // Where events live. The app only talks to an adapter with three calls, so the same screens can
-// run on this phone's localStorage (default) or on the owner's own server later:
+// run on this device's localStorage (default) or on the owner's own server later:
 //
 //   load(person)          -> Promise<Event[]>   events after the seed, oldest first
 //   append(person, event) -> Promise<void>
@@ -9,9 +9,9 @@
 // Nothing in this repo runs a server; see app/README.md for the shape a server must answer.
 
 import { replay } from './state.js';
-import { todayLocal } from './dates.js';
+import { todayLocal, clockLocal } from './dates.js';
 
-const KEY = (person) => `eatit:v1:events:${person}`;
+const KEY = (person) => `eatit:v2:events:${person}`;
 
 export const localAdapter = {
   async load(person) {
@@ -27,6 +27,16 @@ export const localAdapter = {
   },
 };
 
+// Demo scenes run in memory so jumping between them never touches saved data.
+export function memoryAdapter(initial = []) {
+  const log = [...initial];
+  return {
+    async load() { return [...log]; },
+    async append(_p, event) { log.push(event); },
+    async clear() { log.length = 0; },
+  };
+}
+
 export function httpAdapter(base, fetchImpl = globalThis.fetch) {
   const ok = async (r) => { if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r; };
   return {
@@ -39,7 +49,7 @@ export function httpAdapter(base, fetchImpl = globalThis.fetch) {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ person, event }),
       }));
     },
-    async clear() { throw new Error('Reset is not available for a server store'); },
+    async clear() { throw new Error('Clearing is not available for a server store'); },
   };
 }
 
@@ -51,19 +61,22 @@ export async function openStore(persona, adapter = localAdapter, { now = () => n
   const listeners = new Set();
   const store = {
     persona,
+    adapter,
     get today() { return persona.today || todayLocal(now()); },
+    get clock() { return persona.clock || clockLocal(now()); },
     get events() { return [...persona.seed, ...log]; },
+    get log() { return [...log]; },
     state: null,
     error: null,
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     // Build the event without saving it, e.g. to show "Got it" before the user says Done.
     make(partial) { return { id: newId(), at: now().toISOString(), day: store.today, ...partial }; },
-    preview(event) { return replay([...store.events, event]); },
+    preview(...events) { return replay([...store.events, ...events], persona); },
     async dispatch(partial) {
       const event = partial.id ? partial : store.make(partial);
       log.push(event);
-      store.state = replay(store.events);
-      listeners.forEach((fn) => fn(store));
+      store.state = replay(store.events, persona);
+      listeners.forEach((fn) => fn(store, event));
       try { await adapter.append(persona.id, event); store.error = null; }
       catch (err) { store.error = err; console.warn('[eatit] save failed', err); }
       return event;
@@ -71,14 +84,14 @@ export async function openStore(persona, adapter = localAdapter, { now = () => n
     async reset() {
       await adapter.clear(persona.id);
       log = [];
-      store.state = replay(store.events);
+      store.state = replay(store.events, persona);
       listeners.forEach((fn) => fn(store));
     },
     exportJson() {
-      return JSON.stringify({ app: 'eat-it', version: 1, person: persona.id, exportedAt: now().toISOString(), events: log }, null, 2);
+      return JSON.stringify({ app: 'eat-it', version: 2, person: persona.id, exportedAt: now().toISOString(), events: log }, null, 2);
     },
   };
-  store.state = replay(store.events);
+  store.state = replay(store.events, persona);
   return store;
 }
 

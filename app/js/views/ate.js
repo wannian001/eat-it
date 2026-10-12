@@ -1,5 +1,5 @@
 // Board 04: "What did you eat?" -> live transcript -> "Got it" with what comes out of the fridge.
-import { food, foodName } from '../foods.js';
+import { food, foodName, shortName } from '../foods.js';
 import { countOf, frozenLots } from '../state.js';
 import { parseAte } from '../parse.js';
 import { ICON } from '../icons.js';
@@ -7,8 +7,7 @@ import { esc, pic } from '../ui.js';
 
 function transcriptHtml(text) {
   const items = parseAte(text);
-  const spans = items.flatMap((it) => it.spans.map(([a, b]) => ({ a, b, food: it.food, bag: it.unit === 'bag' })))
-    .sort((x, y) => x.a - y.a);
+  const spans = items.flatMap((it) => it.spans.map(([a, b]) => ({ a, b, food: it.food, bag: it.unit === 'bag' }))).sort((x, y) => x.a - y.a);
   let html = '', at = 0;
   for (const s of spans) {
     html += esc(text.slice(at, s.a));
@@ -35,26 +34,22 @@ export function ateResult(store, text) {
   return { event, rows, leftRows: rows.filter((r) => frozen.has(r.food) && r.before > 0) };
 }
 
-export function ateScreen(app) {
-  const { ui, store } = app;
-  const a = ui.ate;
+function inner(app) {
+  const a = app.ui.ate;
   const close = `<button class="round light" data-act="go" data-arg="home" aria-label="Close">${ICON.close({ size: 18 })}</button>`;
-
   if (a.phase === 'done') {
     const { rows, leftRows } = a.result;
-    const tiles = rows.length
-      ? rows.map((r) => {
-        const badge = r.before === 0 ? '0' : r.part && r.delta === 0 ? 'some' : `\u2212${-r.delta}`;
-        const sr = r.before === 0 ? `${foodName(r.food, 1)}, not in your fridge` : r.part && r.delta === 0 ? `Used some ${foodName(r.food, 2)}` : `${foodName(r.food, -r.delta)}, ${r.delta}`;
-        return `<span class="got-tile${r.before === 0 ? ' missing' : ''}" role="img" aria-label="${esc(sr)}">${pic(r.food, { bag: r.unit === 'bag', size: 50 })}<span class="got-badge">${esc(badge)}</span></span>`;
-      }).join('')
-      : '';
+    const tiles = rows.map((r) => {
+      const badge = r.before === 0 ? '0' : r.part && r.delta === 0 ? 'some' : `−${-r.delta}`;
+      const sr = r.before === 0 ? `${foodName(r.food, 1)}, not in your fridge` : r.part && r.delta === 0 ? `Used some ${foodName(r.food, 2)}` : `${foodName(r.food, -r.delta)}, minus ${-r.delta}`;
+      return `<span class="got-tile${r.before === 0 ? ' missing' : ''}" role="img" aria-label="${esc(sr)}">${pic(r.food, { bag: r.unit === 'bag', size: 50 })}<span class="got-badge">${esc(badge)}</span></span>`;
+    }).join('');
     return `<div class="screen ate">
       <header class="cam-top">${close}</header>
       <main class="scroll ate-body">
-        <h1 class="display">${rows.length ? 'Got it' : "Didn't catch any food"}</h1>
-        ${rows.length ? `<div class="got-tiles">${tiles}</div>` : ''}
-        ${leftRows.map((r) => `<div class="left-row">${pic(r.food, { bag: true, size: 28 })}<span>${esc(food(r.food).short || food(r.food).name)} left</span><b>${r.left}</b></div>`).join('')}
+        <h1 class="display left">${rows.length ? 'Got it' : "Didn't catch any food"}</h1>
+        ${rows.length ? `<div class="got-tiles">${tiles}</div>` : '<p class="muted">Try naming the food, like "two eggs and some spinach".</p>'}
+        ${leftRows.map((r) => `<div class="left-row">${pic(r.food, { bag: true, size: 28 })}<span>${esc(shortName(r.food))} left</span><b>${r.left}</b></div>`).join('')}
       </main>
       <div class="dock col">
         ${rows.length ? '<button class="btn btn-primary wide" data-act="ate-done">Done</button>' : ''}
@@ -62,19 +57,14 @@ export function ateScreen(app) {
       </div>
     </div>`;
   }
-
   if (a.phase === 'listening') {
     return `<div class="screen ate">
       <header class="cam-top">${close}</header>
       <main class="scroll ate-body"><p class="said" aria-live="polite">${a.text ? transcriptHtml(a.text) : '<span class="said-wait">Listening…</span>'}</p></main>
-      <div class="dock col center">
-        ${wave()}
-        <button class="mic stop" data-act="stop" aria-label="Stop">${ICON.stop()}</button>
-      </div>
+      <div class="dock col center">${wave()}<button class="mic stop" data-act="stop" aria-label="Stop">${ICON.stop()}</button></div>
     </div>`;
   }
-
-  const note = a.phase === 'nosupport' ? "<p class=\"ate-note\">Voice isn't available in this browser.</p>" : '';
+  const note = a.phase === 'nosupport' ? '<p class="ate-note">Voice isn\'t available in this browser. Tap food on the fridge and choose Used it instead.</p>' : '';
   return `<div class="screen ate">
     <header class="cam-top">${close}</header>
     <main class="scroll ate-body center">
@@ -83,4 +73,8 @@ export function ateScreen(app) {
       ${note}
     </main>
   </div>`;
+}
+
+export function atePage(app) {
+  return `<div class="phone-only fill">${inner(app)}</div><div class="desk-only device-stage">${inner(app)}</div>`;
 }
