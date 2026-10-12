@@ -41,7 +41,10 @@ export function tileHtml(app, t, { size = 54, oldestId } = {}) {
   const frozen = t.lot.date?.kind === 'frozen';
   const wk = frozen && t.lots.some((l) => l.id === oldestId) ? frozenWeeks(t.lot.date.on, today) : 0;
   const q = app.ui.food.q.trim().toLowerCase();
-  const dim = q && !foodName(t.food, 2, t.lot).toLowerCase().includes(q);
+  // Food at home's Mine / Shared filter fades the other tiles, the way search does.
+  const own = ownFilter(app);
+  const notOwn = own !== 'all' && !t.lots.some((l) => (own === 'shared') === (l.owner === 'shared'));
+  const dim = (q && !foodName(t.food, 2, t.lot).toLowerCase().includes(q)) || notOwn;
   return `<button class="tile${t.fresh && app.ui.flash ? ' fresh' : ''}${dim ? ' dim' : ''}" data-act="lot" data-arg="${esc(t.lot.id)}" aria-label="${esc(label(t.food, t.count, t.lot.date, today, 'tile', t.lot))}">
     ${pic(t.food, { bag: t.lot.bag, size, lot: t.lot })}
     ${wk >= 2 ? `<span class="wk">${wk} wk</span>` : ''}
@@ -58,6 +61,9 @@ function fullness(n, capacity) {
 }
 
 const othersIn = (persona, placeId) => (persona.others || []).filter((o) => o.place === placeId);
+
+// 'all' | 'me' | 'shared': only on the Food at home page, and only in a shared house.
+const ownFilter = (app) => (app.route === 'food' && app.store.state.house ? app.ui.food.own : 'all');
 
 // The open fridge from boards 01/02: freezer on top, shelves, crisper. Housemates' shelf locked.
 export function fridgePicture(app, { places } = {}) {
@@ -76,7 +82,7 @@ export function fridgePicture(app, { places } = {}) {
         const os = othersIn(p, c.id);
         const n = os.reduce((a, o) => a + o.n, 0);
         const names = p.house.mates.map((m) => m.name).join(' & ');
-        zones.push(`<div class="zone zone-locked" aria-label="${esc(names)}: ${n} items, private">${ICON.lock({ size: 18 })}<span class="avatars sm">${p.house.mates.map((m, i) => `<span class="avatar av-${i + 1}">${esc(m.initial)}</span>`).join('')}</span><span class="zl-name">${esc(names)}</span><span class="zl-n">${n}</span></div>`);
+        zones.push(`<div class="zone zone-locked${ownFilter(app) !== 'all' ? ' dim' : ''}" aria-label="${esc(names)}: ${n} items, private">${ICON.lock({ size: 18 })}<span class="avatars sm">${p.house.mates.map((m, i) => `<span class="avatar av-${i + 1}">${esc(m.initial)}</span>`).join('')}</span><span class="zl-name">${esc(names)}</span><span class="zl-n">${n}</span></div>`);
         continue;
       }
       const ts = shelfGroups(app, c, sh.spot);
@@ -94,7 +100,7 @@ export function shelfPanel(app, place) {
   const p = app.store.persona;
   const ts = shelfGroups(app, place);
   const os = othersIn(p, place.id);
-  const locked = os.length ? `<div class="zone zone-locked sm">${ICON.lock({ size: 16 })}<span class="zl-name">${esc(os.map((o) => o.who).join(' & '))}</span><span class="zl-n">${os.reduce((a, o) => a + o.n, 0)}</span></div>` : '';
+  const locked = os.length ? `<div class="zone zone-locked sm${ownFilter(app) !== 'all' ? ' dim' : ''}">${ICON.lock({ size: 16 })}<span class="zl-name">${esc(os.map((o) => o.who).join(' & '))}</span><span class="zl-n">${os.reduce((a, o) => a + o.n, 0)}</span></div>` : '';
   return `<section class="cab" aria-label="${esc(place.name)}">
     <div class="cab-h">${placeIcon(place, { size: 16 })}<b>${esc(place.name)}</b></div>
     <div class="tiles">${ts.map((t) => tileHtml(app, t, { size: 46 })).join('') || '<span class="zone-empty">Empty</span>'}</div>${locked}
