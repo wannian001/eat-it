@@ -1,11 +1,11 @@
-// Home. Phone: boards 01/02 (open fridge + Eat first), then Today and Needs a look.
-// Desktop: the v0.2 "Today" page — greeting, fridge on the left, Today / Needs a look / Room at home on the right.
+// Home, kept short: Eat first, the open fridge (boards 01/02) and "Ate at home today?".
+// Everything else has its own page now (Food at home, Week calendar, Shopping list, Household).
 
 import { foodName } from '../foods.js';
 import { fmtDay, greeting, dateTag } from '../dates.js';
 import { ICON, appIcon } from '../icons.js';
-import { esc, pic, pageHead, secHead, label } from '../ui.js';
-import { homePicture, eatFirstHtml, todayHtml, needsLook, roomBars, shelfGroups } from './parts.js';
+import { esc, pic, pageHead, label } from '../ui.js';
+import { homePicture, eatFirstHtml, todayHtml, shelfGroups } from './parts.js';
 
 export function phoneHeader(app, title) {
   const { store, ui } = app;
@@ -43,30 +43,17 @@ export function homePage(app) {
   const { store, ui } = app;
   const s = store.state, p = store.persona, today = store.today, clock = store.clock;
   const title = s.house ? 'Our fridge' : 'My fridge';
-  const hr = parseInt(clock, 10);
   const empty = s.lots.size === 0
-    ? `<div class="card card-leaf"><p class="card-t">Your fridge is empty</p><p>Add what you have now. The quickest way is a photo of your fridge or your last receipt.</p>
-        <div class="btn-row wrap"><button class="btn btn-primary sm" data-act="go" data-arg="add">Add food</button><button class="btn btn-secondary sm" data-act="method" data-arg="type">Type it in</button></div></div>`
+    ? `<div class="card card-leaf h-empty"><p class="card-t">Your fridge is empty</p><div class="btn-row"><button class="btn btn-primary sm" data-act="go" data-arg="add">${ICON.plus({ size: 16, stroke: 2.4 })}Add food</button></div></div>`
     : '';
-  const desk = pageHead(`${esc(fmtDay(today))} · ${esc(clock)}`, `${esc(greeting(clock))}, ${esc(s.profile.name || p.name)}`, null,
-    `<button class="btn btn-secondary" data-act="go" data-arg="ate">${ICON.minus({ size: 18, stroke: 2.4 })}I ate</button><button class="btn btn-primary" data-act="go" data-arg="add">${ICON.plus({ size: 18, stroke: 2.4 })}Add food</button>`);
-  const picture = ui.view === 'list' ? listAll(app) : homePicture(app);
-  const pictureHead = `<div class="sec-h desk-only"><h2>${esc(title)}</h2><button class="link" data-act="view">${ui.view === 'list' ? 'Show the fridge' : 'Show as a list'}</button></div>`;
   return `<div class="page home">
     ${phoneHeader(app, title)}
-    <div class="desk-only">${desk}</div>
+    <div class="desk-only">${pageHead(`${esc(fmtDay(today))} · ${esc(clock)}`, `${esc(greeting(clock))}, ${esc(s.profile.name || p.name)}`)}</div>
     ${empty}
-    <div class="cols2 home-grid">
-      <div class="stack">
-        ${eatFirstHtml(app)}
-        ${pictureHead}
-        ${picture}
-      </div>
-      <div class="stack">
-        <section>${secHead(hr >= 15 ? 'Tonight' : 'Today')}${todayHtml(app)}</section>
-        <section>${secHead('Needs a look')}${needsLook(app)}</section>
-        <section class="desk-only">${secHead('Room at home', '<button class="link" data-act="sheet" data-arg="places">Update</button>')}<div class="card flush">${roomBars(app)}</div></section>
-      </div>
+    <div class="home-grid">
+      <div class="h-eat">${eatFirstHtml(app)}</div>
+      <div class="h-fridge">${ui.view === 'list' ? listAll(app) : homePicture(app)}</div>
+      <div class="h-today">${todayHtml(app)}</div>
     </div>
   </div>`;
 }

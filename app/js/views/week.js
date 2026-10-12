@@ -1,10 +1,11 @@
 // Week calendar: seven day cards, like the owner's personal "week" page, each saying what to watch
-// for in food that day — what to eat by, which freezer bag gets old, eating out — and, for days that
-// have passed, what was actually eaten, used or bought (from the voice log and the food card).
+// for in food that day — what to eat by, which freezer bag gets old — plus a one-line meal status for
+// today and earlier days. Tapping today or an earlier day opens its card in place: "Ate at home that
+// day?" and, if yes, record what was used by voice (earlier days can be filled in later).
 
 import { foodName, shortName } from '../foods.js';
-import { modeOf, nudge, bagNumber, frozenLots, placeOf } from '../state.js';
-import { addDays, daysBetween, weekday, dayMonth, fmtDay, dateTag, lastGood, frozenWeeks } from '../dates.js';
+import { modeOf, nudge, bagNumber, frozenLots, placeOf, mealAnswer, mealSkipped } from '../state.js';
+import { addDays, daysBetween, weekday, dayMonth, fmtDay, longDay, dateTag, lastGood, frozenWeeks } from '../dates.js';
 import { ICON } from '../icons.js';
 import { esc, pic, pageHead, secHead } from '../ui.js';
 import { phoneTitle, dayLog, mealCheck } from './parts.js';
@@ -43,7 +44,8 @@ export function weekDays(app, offset = 0) {
   });
 }
 
-function dayCard(app, d) {
+// What to watch for that day: overdue food (today), what to eat by, the freezer.
+function foodBlocks(app, d) {
   const today = app.store.today;
   const s = app.store.state;
   const blocks = [];
@@ -52,18 +54,41 @@ function dayCard(app, d) {
   if (d.due.length) blocks.push(`<div class="block"><span class="k">Eat by</span><ul>${d.due.map(item).join('')}</ul></div>`);
   if (d.thaw) blocks.push(`<div class="block frost"><span class="k">Freezer</span><div class="wk-line">${pic(d.thaw.food, { bag: true, size: 26, lot: d.thaw })}<span class="wf-text"><b>${esc(shortName(d.thaw.food, d.thaw))}, bag ${bagNumber(s, d.thaw)}</b><small>${frozenWeeks(d.thaw.date.on, today)} weeks frozen</small></span></div><button class="chip-btn on" data-act="thaw" data-arg="${esc(d.thaw.id)}">Thaw tonight</button></div>`);
   else if (d.freezer.length) blocks.push(`<div class="block frost"><span class="k">Freezer</span><ul>${d.freezer.map((l) => `<li class="wk-line">${pic(l.food, { bag: true, size: 26, lot: l })}<span class="wf-text"><b>${esc(shortName(l.food, l))}, bag ${bagNumber(s, l)}</b><small>${daysBetween(l.date.on, d.date) / 7} weeks frozen</small></span></li>`).join('')}</ul></div>`);
-  if (d.isToday) {
-    blocks.push(`<div class="block"><span class="k">Meals today</span>${mealCheck(app, d.date)}</div>`);
-  } else if (d.past) {
-    blocks.push(`<div class="block"><span class="k">${d.out ? 'Used · ate out' : 'Used'}</span>${d.ate.length ? `<ul class="plain">${d.ate.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : `<p class="muted">${d.out ? 'Nothing to log' : 'Nothing recorded'}</p>`}</div>`);
-  }
-  if (d.past || d.isToday) {
+  if (!d.past && !blocks.length) blocks.push('<div class="block"><span class="k">Eat by</span><p class="muted">Nothing due</p></div>');
+  return blocks;
+}
+
+// One line on the card once the day has an answer; nothing while it hasn't.
+function mealStatus(s, d) {
+  if (!d.past && !d.isToday) return '';
+  const ans = mealAnswer(s, d.date);
+  if (d.ate.length) return `<p class="wk-meal done">${ICON.check({ size: 14, stroke: 2.6 })}Recorded · ${d.ate.length}</p>`;
+  if (ans === 'out') return `<p class="wk-meal">${ICON.fork({ size: 14 })}Ate out</p>`;
+  if (ans === 'home') return `<p class="wk-meal">${ICON.home({ size: 14 })}${mealSkipped(s, d.date) ? 'At home · not recorded' : 'At home'}</p>`;
+  return '';
+}
+
+function dayCard(app, d) {
+  const s = app.store.state;
+  const blocks = foodBlocks(app, d);
+  const canOpen = d.past || d.isToday;
+  const open = canOpen && app.ui.weekOpen === d.date;
+  // Opened in place: the meal check ("Ate at home?" → record by voice) shows inside the card.
+  if (open) {
+    blocks.push(`<div class="block day-more"><span class="k">Meals</span>${mealCheck(app, d.date)}</div>`);
     if (d.added) blocks.push(`<div class="block"><span class="k">Added</span><p>${d.added} item${d.added > 1 ? 's' : ''}</p></div>`);
   }
-  if (!d.past && !d.due.length && !d.freezer.length && !d.thaw && !d.overdue.length) blocks.splice(0, 0, '<div class="block"><span class="k">Eat by</span><p class="muted">Nothing due</p></div>');
-  return `<article class="day${d.isToday ? ' today' : ''}${d.past ? ' past' : ''}" id="day-${d.date}">
-    <h2>${esc(weekday(d.date))}${d.isToday ? ' · Today' : ''}</h2><div class="date">${esc(dayMonth(d.date))}</div>
+  const added = canOpen && d.added ? `<p class="wk-meal">${ICON.plus({ size: 14, stroke: 2.4 })}${d.added} added</p>` : '';
+  const foot = open ? '' : mealStatus(s, d) + added;
+  const title = `<h2>${esc(weekday(d.date))}${d.isToday ? ' · Today' : ''}</h2><span class="date">${esc(dayMonth(d.date))}</span>`;
+  const head = canOpen
+    ? `<button class="day-head" data-act="day" data-arg="${d.date}" aria-expanded="${open}"><span>${title}</span><span class="chev" aria-hidden="true">${ICON.next({ size: 16 })}</span></button>`
+    : `<div class="day-head"><span>${title}</span></div>`;
+  // A closed card opens from anywhere on it; an open one only closes from its head.
+  return `<article class="day${d.isToday ? ' today' : ''}${d.past ? ' past' : ''}${open ? ' open' : ''}${canOpen ? ' can-open' : ''}" id="day-${d.date}"${canOpen && !open ? ` data-act="day" data-arg="${d.date}"` : ''}>
+    ${head}
     ${blocks.join('')}
+    ${foot ? `<div class="wk-foot">${foot}</div>` : ''}
   </article>`;
 }
 
@@ -78,8 +103,9 @@ export function weekPage(app) {
   const nav = `<div class="wk-nav"><button class="round" data-act="week-move" data-arg="-1" aria-label="Previous week">${ICON.back({ size: 16 })}</button><span>${esc(fmtDay(days[0].date))} – ${esc(fmtDay(end))}</span><button class="round" data-act="week-move" data-arg="1" aria-label="Next week">${ICON.next({ size: 16 })}</button>${off ? '<button class="link" data-act="week-move" data-arg="0">This week</button>' : ''}</div>`;
   return `<div class="page week">
     ${phoneTitle(app, 'Week calendar')}
-    <div class="desk-only">${pageHead(off === 0 ? 'This week' : off === 1 ? 'Next week' : off === -1 ? 'Last week' : off > 0 ? `In ${off} weeks` : `${-off} weeks ago`, 'Week calendar', 'What to watch for in food each day: what to eat by, which freezer bag is getting old, nights out — and what you actually ate.')}</div>
+    <div class="desk-only">${pageHead(off === 0 ? 'This week' : off === 1 ? 'Next week' : off === -1 ? 'Last week' : off > 0 ? `In ${off} weeks` : `${-off} weeks ago`, 'Week calendar', 'What to watch for in food each day: what to eat by and which freezer bag is getting old.')}</div>
     ${nav}
+    <p class="wk-hint">Tap a day to say whether you ate at home and record what you used.</p>
     <div class="days" tabindex="0" aria-label="Seven days">${days.map((d) => dayCard(app, d)).join('')}</div>
     ${later.length ? `<section>${secHead('Coming up')}<ul class="rows">${later.map((l) => { const t = dateTag(l.date, today); return `<li><button class="row" data-act="lot" data-arg="${esc(l.id)}">${pic(l.food, { size: 32, lot: l })}<span class="r-main"><b>${esc(foodName(l.food, 2, l))}</b><small>${esc(fmtDay(lastGood(l.date)))}</small></span><span class="tag tag-${t.kind}">${esc(`in ${daysBetween(today, lastGood(l.date))} days`)}</span></button></li>`; }).join('')}</ul></section>` : ''}
     <p class="small muted pad">Forgot to say what you ate? Open any food on Home and change how much is left.</p>

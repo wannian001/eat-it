@@ -1,6 +1,8 @@
 # ShelfLife · INFO90006 设计概念原型
 
 > **更新（2026-10-09）：** 产品方向已改为 **Eat It!**（手机 App 概念，两个 persona，虚拟冰箱加桌面小组件）。最新文档在 `docs/Eat-It_*.md` 和 `docs/VISUAL-SPEC.md`，AI 助手请先读 [AGENTS.md](AGENTS.md)。下面的内容和 `index.html` 是 v0.2 旧版 lo-fi 原型的说明，仅作历史记录。
+>
+> **可运行的 Eat It! App（2026-10-12）在 [`app/`](app/)，介绍和截图看 [app/README.md](app/README.md)。** 出库全部用语音：说一句今天做了什么饭，AI 追问还剩多少。在线演示：<https://claude.ai/artifact/PQCh5vW9sGnT6cbFa129iA>（需要嘉阔分享后组员才能打开）。
 
 
 帮大学生管好家里的食物、少浪费：知道冰箱里有什么、哪些该先吃，录入尽量不用手打。

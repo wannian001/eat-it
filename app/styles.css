@@ -221,6 +221,15 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .pic-cat { display: grid; place-items: center; border-radius: 30%; background: var(--white); border: 2px dashed var(--line); color: var(--stone); }
 
+/* ---------- Home (kept short) ---------- */
+.home-grid { display: flex; flex-direction: column; }
+.h-today { padding: 0 16px; margin-top: 4px; }
+.h-empty { margin: 0 16px 14px; }
+.today-card { display: flex; flex-direction: column; gap: 10px; background: var(--wash); border-color: transparent; }
+.today-card .meal.ask { padding: 0; background: none; }
+.thaw-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+.thaw-line .link { padding: 0; margin-left: 4px; }
+
 /* ---------- list views ---------- */
 .list { padding: 0 16px; }
 .list-h { margin: 6px 2px 8px; font: 700 13px var(--font-body); color: var(--stone); }
@@ -457,7 +466,7 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 
 /* ---------- week calendar (like the personal system's week page) ---------- */
 .wk-nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 16px 12px; font: 800 15px var(--font-title); }
-.days { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 16px 16px; scrollbar-width: none; }
+.days { display: flex; align-items: flex-start; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 16px 16px; scrollbar-width: none; }
 .days::-webkit-scrollbar { display: none; }
 .day { flex: 0 0 78%; min-width: 0; scroll-snap-align: center; display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 20px; background: var(--white); border: 1.5px solid var(--line); }
 .day.today { border-color: var(--leaf-deep); box-shadow: inset 0 0 0 1px var(--leaf-deep); }
@@ -484,7 +493,25 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .meal p { font-size: 13px; }
 .meal.ask { padding: 10px; border-radius: 14px; background: var(--wash); }
 .meal-q { font: 800 15px var(--font-title) !important; }
-.meal .btn-row { margin-top: 2px; }
+.meal .btn-row { margin-top: 2px; align-self: stretch; }
+.meal .btn { white-space: nowrap; }
+
+.day.can-open { cursor: pointer; transition: border-color .15s; }
+.day.can-open:not(.open):hover { border-color: var(--leaf-deep); }
+.day.open { cursor: default; }
+.day-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; width: 100%; padding: 0; border: 0; background: none; color: inherit; text-align: left; font: inherit; }
+button.day-head { cursor: pointer; }
+.day-head > span:first-child { display: flex; flex-direction: column; gap: 2px; }
+.day-head .date { margin-top: 0; }
+.chev { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--mist); color: var(--stone); transform: rotate(90deg); transition: transform .15s; flex: none; }
+.day.past .chev { background: var(--white); }
+.day.open .chev { transform: rotate(-90deg); background: var(--leaf); color: var(--ink); }
+.day-more { width: 100%; }
+.day .meal .btn-row .btn { flex: 1; padding: 0 10px; }
+.wk-hint { margin: -4px 16px 10px; font-size: 13px; color: var(--stone); }
+.wk-foot { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
+.wk-meal { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--stone); }
+.wk-meal.done { color: var(--leaf-deep); }
 .today-meal { margin-top: 12px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--leaf-deep) 18%, transparent); }
 .today-meal .meal.ask { padding: 0; background: none; }
 .card .link { margin-top: 6px; }
@@ -501,7 +528,6 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .addrow { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--line); }
 .addrow input { flex: 1; min-width: 0; }
 .sugg { margin-top: 10px; }
-.ov { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 4px 0; }
 
 /* ---------- household ---------- */
 .set { list-style: none; margin: 0; padding: 0; border: 1.5px solid var(--line); border-radius: 20px; overflow: hidden; background: var(--white); }
@@ -707,7 +733,12 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
   .page { max-width: 1160px; margin: 0 auto; padding: 0; }
   .page > section, .page > .card, .page > .banner, .page > .toolbar, .page > .vtools, .page > .rows, .page > .weekwrap { margin-left: 0; margin-right: 0; }
   .cols2, .home .cols2 { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; padding: 0; align-items: start; }
-  .home .cols2 > .stack:last-child { padding: 0; }
+  .home-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); grid-template-areas: "fridge eat" "fridge today"; grid-template-rows: auto 1fr; gap: 0 28px; align-items: start; }
+  .h-eat { grid-area: eat; }
+  .h-fridge { grid-area: fridge; }
+  .h-today { grid-area: today; padding: 0; margin-top: 0; }
+  .h-eat .eatfirst { margin-bottom: 16px; }
+  .h-empty { margin: 0 0 20px; }
   .home > .card { margin: 0 0 20px; }
   .pill-bar, .tabs { display: none; }
   .toast { bottom: 28px; left: calc(50% + var(--side) / 2); }
@@ -715,10 +746,8 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
   .eatfirst, .fridge, .cab, .viz .fridge, .viz .cab, .list, .viz-h, .legend, .ftable { margin-left: 0; margin-right: 0; }
   .list { padding: 0; }
   .fridge { padding: 9px; gap: 9px; border-radius: 32px; }
-  .tiles { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); min-height: 96px; }
-  .tile { height: 96px; padding-bottom: 20px; }
-  .tile-name { display: block; position: absolute; left: 0; right: 0; bottom: 2px; font: 700 11px/1.2 var(--font-body); color: var(--stone); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
-  .count { bottom: 20px; }
+  .tiles { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); min-height: 84px; }
+  .tile { height: 84px; }
   .list-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .fhead, .frow { display: grid; grid-template-columns: minmax(0, 2.2fr) 1fr .8fr 1.2fr 150px; gap: 12px; align-items: center; }
   .fhead span:last-child, .frow .fd { justify-self: end; }
@@ -738,8 +767,10 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
   .receipt { margin: 8px 0 0; padding: 18px 20px 12px; }
   .confirm { flex-direction: row; justify-content: space-between; align-items: center; padding: 22px 0 0; }
   .wk-nav { margin: 0 0 14px; }
-  /* Seven in a row when there is room (about 1,300 px of content); otherwise they wrap, 4 + 3. */
-  .days { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; padding: 0 0 18px; overflow: visible; }
+  .wk-hint { margin: -6px 0 12px; }
+  /* 4 + 3 on most screens, seven in a row only when the window is really wide. */
+  .days { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 12px; padding: 0 0 18px; overflow: visible; }
+  .day .meal .btn-row { flex-direction: column; gap: 6px; }
   .day { min-height: 240px; padding: 14px 12px; }
   .day h2 { font-size: 17px; }
   .device-stage { display: flex !important; flex-direction: column; align-items: center; gap: 14px; }
@@ -752,6 +783,10 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
   .handle { display: none; }
   .onboard { background: var(--mist); }
   @keyframes slide { from { transform: translateX(40px); opacity: 0; } }
+}
+
+@media (min-width: 1500px) {
+  .days { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }
 
 @media (min-width: 900px) and (max-width: 1180px) {
