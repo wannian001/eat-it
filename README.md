@@ -16,7 +16,7 @@
 - 设计文档在 `docs/Eat-It_*.md` 和 `docs/VISUAL-SPEC.md`。AI 助手请先读 [AGENTS.md](AGENTS.md)。
 - 截止：**10/20（周二）15:00**，3 分钟视频 + 2 页报告。
 
-> 在线演示放在单独的公开仓库 [wannian001/eat-it](https://github.com/wannian001/eat-it)，里面只有 App 代码和贴纸，没有文档、访谈材料和测试。这个小组仓库仍然是私有的。改完 App 后，用 `sh app/publish-demo.sh <eat-it 的本地目录>` 更新演示。
+> 在线演示就是这个仓库发布的：合并到 `main` 后运行 `sh app/publish-site.sh`，它把 `app/` 和贴纸构建好，推到本仓库的 `gh-pages` 分支，GitHub Pages 从那里发布。网站上只有 App，没有文档和旧原型。这个仓库 2026-10-13 起公开（原名 info90006-shelflife），提交记录就是我们小组的工作记录。
 
 ## 仓库里有什么
 
@@ -41,7 +41,7 @@
 3. 改完让它跑 `cd app && node --test`，你自己在手机和电脑上各点一遍，再提交。
 
 **规则**（AI 也要遵守，`AGENTS.md` 里有完整版）：
-- 这个仓库是**私有**的，不要公开，也不要外传。旧版的设计注释里有参与者的匿名引用。在线演示在单独的公开仓库，只放 App 代码和贴纸。
+- 这个仓库是**公开**的。不要放任何真实的参与者数据；旧原型里的参与者引语公开前已删掉，不要加回来。
 - 不加入真实参与者数据（录音、转写、真名等）。
 - 视频旁白台词和 2 页报告的正文，由我们自己写。AI 可以给结构、帮忙检查，不代写成稿。
 
@@ -75,7 +75,7 @@
 
 ### 快速开始
 
-1. 点右上角 **Code → Download ZIP** 解压，或者 `git clone https://github.com/wannian001/info90006-shelflife.git`。
+1. 点右上角 **Code → Download ZIP** 解压，或者 `git clone https://github.com/wannian001/eat-it.git`。
 2. 用 **Chrome** 打开 `index.html`。不需要登录、服务器，也不需要安装任何东西。
 3. 顶部紫色的**演示栏**：
    - 切换 **May**（合租、没有冷冻室）或 **John**（一个人住、有冷冻室）。

@@ -1,24 +1,20 @@
 #!/bin/sh
-# Copy the app into a checkout of the public demo repo (github.com/wannian001/eat-it, served by
-# GitHub Pages at https://wannian001.github.io/eat-it/) and push it. Only the app and the stickers
-# go there: no docs, no fieldwork material, no tests.
-# Usage: sh app/publish-demo.sh <path to the eat-it checkout>
+# Build the online demo (GitHub Pages) from this repo: only the app and the stickers, nothing else.
+# app/publish-site.sh uses it to publish; run it yourself to preview the site:
+#   sh app/build-site.sh /tmp/eat-it-site && python3 -m http.server 8000 --directory /tmp/eat-it-site
 set -e
 here=$(cd "$(dirname "$0")/.." && pwd)
-dest=${1:?give the path to the eat-it checkout}
+dest=${1:?give an empty folder to build the site in}
+mkdir -p "$dest"
 dest=$(cd "$dest" && pwd)
-# Safety: only ever write into a separate checkout of the eat-it repo, and only publish committed code
-# (the ?v= stamp below is the commit, so uncommitted edits would go out under an old version).
-case "$dest/" in "$here"/*) echo "Refusing: $dest is inside this repo." >&2; exit 1 ;; esac
-git -C "$dest" remote get-url origin 2>/dev/null | grep -q 'wannian001/eat-it' || { echo "Refusing: $dest is not a checkout of wannian001/eat-it." >&2; exit 1; }
-[ -z "$(git -C "$here" status --porcelain -- app assets)" ] || { echo "Commit your changes in app/ and assets/ first." >&2; exit 1; }
+case "$dest/" in "$here"/*) echo "Refusing: build outside this repo, not inside it." >&2; exit 1 ;; esac
 rm -rf "$dest/app" "$dest/assets"
 mkdir -p "$dest/app" "$dest/assets/stickers"
 cp -R "$here/app/index.html" "$here/app/styles.css" "$here/app/icon.svg" "$here/app/manifest.webmanifest" "$here/app/js" "$dest/app/"
 cp "$here"/assets/stickers/*.svg "$dest/assets/stickers/"
-# Give the code a new address on every publish (?v=<commit>). Otherwise phones keep running the old
+# Give the code a new address on every build (?v=<commit>). Otherwise phones keep running the old
 # scripts from their cache after an update, because each module is cached on its own.
-v=$(cd "$here" && git rev-parse --short HEAD)
+v=$(git -C "$here" rev-parse --short HEAD 2>/dev/null || date +%s)
 find "$dest/app/js" -name '*.js' -exec sed -i.bak -E "s#(from '\.{1,2}/[^']+\.js)'#\1?v=$v'#g" {} \;
 sed -i.bak -e "s#src=\"js/main.js\"#src=\"js/main.js?v=$v\"#" -e "s#href=\"styles.css\"#href=\"styles.css?v=$v\"#" "$dest/app/index.html"
 find "$dest/app" -name '*.bak' -delete
@@ -39,6 +35,5 @@ cat > "$dest/index.html" <<'HTML'
 </body>
 </html>
 HTML
-cd "$dest"
-git add -A
-if git diff --cached --quiet; then echo "Nothing new to publish."; else git commit -q -m "Update the app from the group repo"; git push -q; fi
+touch "$dest/.nojekyll"
+echo "Built $dest (v=$v)"

@@ -120,11 +120,13 @@ AI 把这句话对上家里有的东西。说了具体数量的（"two tomatoes"
 
 ## 打开
 
-在线：<https://wannian001.github.io/eat-it/>，什么都不用装。演示在单独的公开仓库 [wannian001/eat-it](https://github.com/wannian001/eat-it)，只放 App 代码和贴纸（没有文档、访谈材料和测试）；这个小组仓库仍然私有。改完 App 后这样更新演示：
+在线：<https://wannian001.github.io/eat-it/>，什么都不用装。演示由这个仓库发布：合并到 `main` 后运行
 
 ```bash
-sh app/publish-demo.sh <eat-it 仓库的本地目录>
+sh app/publish-site.sh
 ```
+
+它用 `app/build-site.sh` 把 `app/` 和贴纸构建好，推到本仓库的 `gh-pages` 分支，GitHub Pages 一两分钟后生效。每次发布的代码地址都带 `?v=<提交号>`，手机不会卡在旧版本。想先在本地看发布出来的样子：`sh app/build-site.sh /tmp/eat-it-site`。
 
 本地：
 
@@ -180,6 +182,7 @@ Node 18 以上，无依赖（`npm test` 也行）。26 个测试，覆盖日期�
 
 ## 10-13 改了什么
 
+- 仓库公开并改名为 `eat-it`（原名 info90006-shelflife），在线演示改由这个仓库自动发布，不再用单独的演示仓库。公开前删掉了旧原型里的参与者引语。
 - 组员试用反馈：
   - 语音用一次之后就不好使：现在全程只用一个识别器，等上一次结束再开始，浏览器不回结束信号也不会卡住。
   - 拍照、小票、条码现在真的打开摄像头。
