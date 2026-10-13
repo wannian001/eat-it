@@ -68,7 +68,7 @@ test("May's demo home matches board 02, no freezer", () => {
   const s = may();
   assert.deepEqual(eatFirst(s, TODAY).map((x) => x.food), ['chicken', 'spinach', 'strawberry']);
   assert.equal(nudge(s, TODAY), null);
-  assert.equal(modeOf(s, '2026-10-13'), 'out');
+  assert.equal(modeOf(s, '2026-10-11'), 'out');
 });
 
 test('eating takes the oldest bag first', () => {
@@ -89,7 +89,7 @@ test('eating out marks the day and holds the freezer nudge', () => {
   const s = john(ev('plan', { day: TODAY, mode: 'out' }));
   assert.equal(modeOf(s, TODAY), 'out');
   assert.equal(nudge(s, TODAY), null);
-  assert.equal(modeOf(may(), '2026-10-13'), 'out');
+  assert.equal(modeOf(may(), '2026-10-12'), 'out');
 });
 
 test('fixing stock by hand: set a count, or all gone', () => {

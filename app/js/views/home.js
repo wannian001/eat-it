@@ -1,12 +1,13 @@
 // Home, kept short: Eat first, the open fridge (boards 01/02) and "Ate at home today?".
 // Everything else has its own page now (Food at home, Week calendar, Shopping list, Household).
 
-import { foodName } from '../foods.js';
-import { fmtDay, greeting, dateTag } from '../dates.js';
+import { foodName, canFreeze } from '../foods.js';
+import { fmtDay, greeting, dateTag, daysBetween } from '../dates.js';
+import { awayRuns, hasFreezer } from '../state.js';
 import { ICON, appIcon } from '../icons.js';
-import { esc, pic, pageHead, label } from '../ui.js';
+import { esc, pic, pageHead, label, tag } from '../ui.js';
 import { prefs } from '../store.js';
-import { homePicture, eatFirstHtml, todayHtml, shelfGroups } from './parts.js';
+import { homePicture, eatFirstHtml, todayHtml, shelfGroups, awayTitle, awayWhen } from './parts.js';
 
 export function phoneHeader(app, title) {
   const { store, ui } = app;
@@ -50,6 +51,20 @@ function guide(app) {
   </section>`;
 }
 
+// Days out coming up (marked in the week calendar): from two days before, a big reminder of the food
+// that would go off while you're away: use it, or freeze it if it freezes and there is a freezer.
+function awayCard(app) {
+  const s = app.store.state, today = app.store.today, id = app.store.persona.id;
+  const r = awayRuns(s, today).find((x) => x.prep >= today && daysBetween(today, x.prep) <= 2 && !prefs.get(`away:${id}:${x.from}`, false));
+  if (!r) return '';
+  const freezer = hasFreezer(s);
+  return `<section class="card away" aria-label="Before you're out">
+    <div class="away-h"><span class="g-ic">${ICON.fork({ size: 18 })}</span><div><b>${esc(awayTitle(r, today))}</b><small>Use or freeze these ${esc(awayWhen(r, today))}.</small></div></div>
+    <ul class="away-list">${r.lots.map((l) => `<li><button class="away-food" data-act="lot" data-arg="${esc(l.id)}">${pic(l.food, { size: 32, lot: l })}<span><b>${esc(foodName(l.food, 2, l))}</b>${tag(l.date, today)}</span></button>${freezer && canFreeze(l.food) ? `<button class="chip-btn" data-act="freeze" data-arg="${esc(l.id)}">${ICON.snow({ size: 14 })}Freeze</button>` : ''}</li>`).join('')}</ul>
+    <button class="link" data-act="away-ok" data-arg="${r.from}">Got it</button>
+  </section>`;
+}
+
 export function homePage(app) {
   const { store, ui } = app;
   const s = store.state, p = store.persona, today = store.today, clock = store.clock;
@@ -61,6 +76,7 @@ export function homePage(app) {
     ${phoneHeader(app, title)}
     <div class="desk-only">${pageHead(`${esc(fmtDay(today))} · ${esc(clock)}`, `${esc(greeting(clock))}, ${esc(s.profile.name || p.name)}`)}</div>
     ${guide(app)}
+    ${awayCard(app)}
     ${empty}
     <div class="home-grid">
       <div class="h-eat">${eatFirstHtml(app)}</div>

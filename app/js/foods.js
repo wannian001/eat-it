@@ -73,6 +73,9 @@ export function foodName(id, n = 2, lot) {
 
 export const shortName = (id, lot) => lot?.name || food(id).short || food(id).name;
 
+// Food that freezes well enough to save it from going off: meat, leftovers, bread.
+export const canFreeze = (id) => { const f = food(id); return f.cat === 'meat' || !!f.leftover || id === 'bread'; };
+
 // Phrases that contain a catalogue word but are something else: "chicken stock" is not chicken
 // thighs, "lamb mince" is not beef mince. They match as "no food" (null), so nothing gets taken.
 export const NOT_FOOD = ['chicken stock', 'beef stock', 'vegetable stock', 'stock cube', 'stock cubes', 'chicken mince', 'lamb mince', 'turkey mince', 'veal mince',

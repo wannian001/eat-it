@@ -5,11 +5,11 @@
 // "Eating at home?", so a day out can be planned ahead.
 
 import { foodName, shortName } from '../foods.js';
-import { modeOf, nudge, bagNumber, frozenLots, placeOf, mealAnswer, mealSkipped } from '../state.js';
+import { modeOf, nudge, bagNumber, frozenLots, placeOf, mealAnswer, mealSkipped, awayRuns } from '../state.js';
 import { addDays, daysBetween, weekday, dayMonth, fmtDay, longDay, dateTag, lastGood, frozenWeeks } from '../dates.js';
 import { ICON } from '../icons.js';
 import { esc, pic, pageHead, secHead } from '../ui.js';
-import { phoneTitle, mealLog, mealCheck } from './parts.js';
+import { phoneTitle, mealLog, mealCheck, awayTitle } from './parts.js';
 
 const monday = (day) => addDays(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7));
 
@@ -24,6 +24,7 @@ export function weekDays(app, offset = 0) {
   const s = app.store.state, today = app.store.today;
   const start = addDays(monday(today), offset * 7);
   const oldest = frozenLots(s);
+  const runs = awayRuns(s, today, 28);
   return Array.from({ length: 7 }, (_, i) => {
     const d = addDays(start, i);
     const past = d < today, isToday = d === today;
@@ -35,6 +36,7 @@ export function weekDays(app, offset = 0) {
     return {
       date: d, past, isToday,
       out: modeOf(s, d) === 'out',
+      away: d >= today ? runs.find((r) => r.prep === d) || null : null,
       due: past ? [] : dueOn(s, d),
       overdue: isToday ? [...s.lots.values()].filter((l) => l.owner !== 'housemate' && lastGood(l.date) && lastGood(l.date) < today) : [],
       // Once a bag was taken out today, today's card doesn't nag about the freezer again.
@@ -52,6 +54,7 @@ function foodBlocks(app, d) {
   const s = app.store.state;
   const blocks = [];
   const item = (l) => { const t = dateTag(l.date, today); return `<li><button class="wk-food" data-act="lot" data-arg="${esc(l.id)}">${pic(l.food, { size: 26, lot: l })}<span class="wf-text"><b>${esc(foodName(l.food, 2, l))}</b><small class="d-${t.kind}">${esc(KIND_WORD[l.date.kind] || '')}</small></span></button></li>`; };
+  if (d.away) blocks.push(`<div class="block away-b"><span class="k">${esc(awayTitle(d.away, today))}</span><small class="away-sub">Use or freeze these ${d.isToday ? 'today' : 'this day'}</small><ul>${d.away.lots.map(item).join('')}</ul></div>`);
   if (d.overdue.length) blocks.push(`<div class="block warn"><span class="k">Past the date</span><ul>${d.overdue.map(item).join('')}</ul></div>`);
   if (d.due.length) blocks.push(`<div class="block"><span class="k">Dates this day</span><ul>${d.due.map(item).join('')}</ul></div>`);
   if (d.thaw) blocks.push(`<div class="block frost"><span class="k">Freezer</span><div class="wk-line">${pic(d.thaw.food, { bag: true, size: 26, lot: d.thaw })}<span class="wf-text"><b>${esc(shortName(d.thaw.food, d.thaw))}, bag ${bagNumber(s, d.thaw)}</b><small>Frozen ${frozenWeeks(d.thaw.date.on, today)} weeks</small></span></div><button class="chip-btn on" data-act="thaw" data-arg="${esc(d.thaw.id)}">Thaw tonight</button></div>`);
