@@ -71,9 +71,6 @@ function shell(content) {
 function render() {
   const scroller = root.querySelector('.main');
   const keep = scroller && root.dataset.route === app.route ? scroller.scrollTop : 0;
-  // Phone week strip scrolls sideways: keep where it was, so opening a day doesn't jump to Monday.
-  const strip0 = root.querySelector('.days');
-  const keepX = strip0 && root.dataset.route === app.route ? strip0.scrollLeft : null;
   const sheetWasOpen = !!root.querySelector('.sheet');
   const sheetTop = root.querySelector('.sheet')?.scrollTop || 0;
   const active = document.activeElement;
@@ -90,21 +87,8 @@ function render() {
     const sheet = app.ui.sheet && SHEETS[app.ui.sheet.type] ? SHEETS[app.ui.sheet.type](app) : '';
     html = shell(ROUTES[app.route](app)) + sheet;
   }
-  const enteringWeek = app.route === 'week' && root.dataset.route !== 'week';
   root.innerHTML = html;
   root.dataset.route = app.route;
-  // Phone: the seven days scroll sideways. Open on today, like the personal system's week page; after
-  // that stay put, and bring a day that was just opened fully into view.
-  const strip = root.querySelector('.days');
-  if (strip && strip.scrollWidth > strip.clientWidth) {
-    const center = (card) => { strip.scrollLeft = card.offsetLeft - strip.offsetLeft - (strip.clientWidth - card.offsetWidth) / 2; };
-    const todayCard = strip.querySelector('.day.today');
-    if (enteringWeek || app.ui.weekJump) { if (todayCard) center(todayCard); else strip.scrollLeft = 0; }
-    else if (keepX != null) strip.scrollLeft = keepX;
-    const focus = app.ui.weekFocus && document.getElementById(`day-${app.ui.weekFocus}`);
-    if (focus) center(focus);
-  }
-  if (app.route === 'week') { app.ui.weekJump = false; app.ui.weekFocus = null; }
   syncCamera();
   document.body.dataset.route = app.route;
   const next = root.querySelector('.main');
@@ -361,7 +345,7 @@ function ateBack() {
   const a = app.ui.ate;
   const day = a.day || app.store.today;
   if (a.from !== 'week' && !(a.day && a.day !== app.store.today)) return 'home';
-  app.ui.weekOpen = day; app.ui.weekFocus = day;
+  app.ui.weekOpen = day;
   return 'week';
 }
 
@@ -417,8 +401,8 @@ const ACT = {
   },
   // Record what was used on a given day (today or earlier) by voice.
   'ate-for'(day) { app.ui.ateDay = day === app.store.today ? null : day; app.ui.ateFrom = app.route; app.ui.sheet = null; go('ate'); },
-  // Open or close a day card in the week calendar.
-  day(d) { app.ui.weekOpen = app.ui.weekOpen === d ? null : d; app.ui.weekFocus = app.ui.weekOpen; render(); },
+  // Choose a day in the week calendar strip.
+  day(d) { app.ui.weekOpen = d; render(); },
   // "Ate at home that day?": home asks whether to record now, skip = "Not now", out = ate out,
   // none takes the answer back.
   async meal(arg) {
@@ -439,7 +423,7 @@ const ACT = {
     const e = await dispatch({ type: 'plan', day: today, mode: on ? 'out' : 'none' });
     toast(on ? 'Eating out tonight.' : 'Back to eating at home.', e.id);
   },
-  'week-move'(n) { app.ui.weekOffset = Number(n) === 0 ? 0 : (app.ui.weekOffset || 0) + Number(n); app.ui.weekJump = true; render(); },
+  'week-move'(n) { app.ui.weekOffset = Number(n) === 0 ? 0 : (app.ui.weekOffset || 0) + Number(n); render(); },
   async qty(arg) {
     const [lot, n] = split(arg);
     const name = lotName(lot);

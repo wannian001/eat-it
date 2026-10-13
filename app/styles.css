@@ -239,9 +239,6 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .away-food > span { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
 .away-food b { font: 700 14px var(--font-body); }
 .away .link { align-self: flex-start; }
-.block.away-b { width: 100%; padding: 10px; border-radius: 14px; background: var(--amber-soft); }
-.block.away-b .k { color: var(--amber-text); }
-.away-sub { font-size: 12px; color: var(--amber-text); margin-top: -4px; }
 .guide { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; background: var(--wash); border-color: transparent; }
 .guide ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .guide li { display: flex; align-items: center; gap: 12px; }
@@ -501,26 +498,6 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 
 /* ---------- week calendar (like the personal system's week page) ---------- */
 .wk-nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 16px 12px; font: 800 15px var(--font-title); }
-.days { display: flex; align-items: flex-start; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 16px 16px; scrollbar-width: none; }
-.days::-webkit-scrollbar { display: none; }
-.day { flex: 0 0 78%; min-width: 0; scroll-snap-align: center; display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 20px; background: var(--white); border: 1.5px solid var(--line); }
-.day.today { border-color: var(--leaf-deep); box-shadow: inset 0 0 0 1px var(--leaf-deep); }
-.day.past { background: var(--mist); }
-.day h2 { font: 800 18px/1.1 var(--font-title); }
-.day .date { margin-top: -10px; color: var(--stone); font-size: 13px; }
-.block { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
-.block .k { font: 800 11px var(--font-body); letter-spacing: .05em; text-transform: uppercase; color: var(--stone); }
-.block ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; width: 100%; }
-.block ul.plain { gap: 4px; }
-.block ul.plain li { font-size: 13px; line-height: 1.35; }
-.block p { font-size: 13px; display: flex; align-items: center; gap: 6px; }
-.block.warn, .block.frost { width: 100%; padding: 10px; border-radius: 14px; }
-.block.warn { background: var(--tomato-soft); }
-.block.frost { background: var(--frost); }
-.wk-food, .wk-line { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; text-align: left; }
-.wk-food { padding: 5px 6px; margin: 0 -6px; border: 0; border-radius: 10px; background: none; width: calc(100% + 12px); }
-.wk-food:hover { background: var(--mist); }
-.wk-food .pic, .wk-line .pic { flex: none; }
 .wf-text { display: flex; flex-direction: column; min-width: 0; }
 .wf-text b { font: 700 13px/1.25 var(--font-body); overflow-wrap: break-word; hyphens: auto; }
 .wf-text small { font: 700 11px/1.3 var(--font-body); color: var(--stone); }
@@ -531,25 +508,50 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .meal .btn-row { margin-top: 2px; align-self: stretch; }
 .meal .btn { white-space: nowrap; }
 
-.day { transition: border-color .15s; }
-.day.can-open { cursor: pointer; }
-.day.can-open:hover { border-color: var(--leaf-deep); }
-.day.open { cursor: default; }
-.day-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; width: 100%; padding: 0; border: 0; background: none; color: inherit; text-align: left; font: inherit; }
-button.day-head { cursor: pointer; }
-.day-head > span:first-child { display: flex; flex-direction: column; gap: 2px; }
-.day-head .date { margin-top: 0; }
 .chev { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--mist); color: var(--stone); transform: rotate(90deg); transition: transform .15s; flex: none; }
-.day.past .chev { background: var(--white); }
-.day.open .chev { transform: rotate(-90deg); background: var(--leaf); color: var(--ink); }
-.day-more { width: 100%; }
-.day .meal .btn-row .btn { flex: 1; padding: 0 10px; }
-.wk-hint { margin: -4px 16px 10px; font-size: 13px; color: var(--stone); }
-.wk-foot { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
-.wk-meal { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--stone); }
-.wk-meal.done { color: var(--leaf-deep); }
-.wk-meal.out { color: var(--ink); }
 .meal-note { font-size: 12.5px; color: var(--stone); }
+
+/* ---------- week calendar: a strip of seven days, the chosen day opened below ---------- */
+.wk-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0 16px 16px; }
+.wk-chip { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; min-height: 74px; padding: 8px 2px 8px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--white); color: var(--ink); cursor: pointer; transition: border-color .15s, background .15s; }
+.wk-chip:hover { border-color: var(--leaf-deep); }
+.wk-chip.past { background: var(--mist); }
+.wk-chip.sel { background: var(--leaf); border-color: var(--leaf-deep); }
+.wk-chip .c-wd { font: 700 11px var(--font-body); color: var(--stone); white-space: nowrap; }
+.wk-chip.today .c-wd { color: var(--leaf-deep); font-weight: 800; }
+.wk-chip.sel .c-wd { color: var(--ink); }
+.wk-chip .c-d { font: 800 20px/1.1 var(--font-title); }
+.wk-chip .c-marks { display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 14px; color: var(--ink); }
+.c-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--stone); }
+.c-dot.use_by { background: var(--tomato); }
+.c-dot.best_before { background: var(--amber); }
+.wk-chip.prep::after { content: ''; position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 2px var(--white); }
+
+.wk-body { display: flex; flex-direction: column; gap: 22px; }
+.wk-detail { display: flex; flex-direction: column; gap: 12px; margin: 0 16px; }
+.wd-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.wd-head h2 { font: 800 21px/1.15 var(--font-title); margin-right: 4px; }
+.wd-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; background: var(--leaf-soft); font: 800 12px var(--font-body); }
+.wd-pill.out { background: var(--mist); }
+.wd-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.wd-card { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; padding: 14px; border: 1.5px solid var(--line); border-radius: 18px; background: var(--white); }
+.wd-card h3 { font: 800 15px var(--font-title); }
+.wd-card.away { background: var(--amber-soft); border-color: var(--amber); }
+.wd-card.away h3, .wd-card.away .wd-sub { color: var(--amber-text); }
+.wd-card.warn { background: var(--tomato-soft); border-color: transparent; }
+.wd-card.frost { background: var(--frost); border-color: transparent; }
+.wd-card.frost .btn { align-self: flex-start; }
+.wd-card .meal.ask { padding: 0; background: none; }
+.wd-sub { font-size: 13px; color: var(--stone); }
+.wd-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.wd-list li { display: flex; align-items: center; gap: 8px; }
+.wd-food { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 6px; margin: 0 -6px; border: 0; border-radius: 12px; background: none; color: var(--ink); text-align: left; cursor: pointer; }
+.wd-food:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.wd-food.static { cursor: default; margin: 0; padding: 0; }
+.wd-food.static:hover { background: none; }
+.wd-food .pic { flex: none; }
+.wd-food b { flex: 1; min-width: 0; font: 700 14px var(--font-body); }
+.wk-later > .sec-h, .wk-later > .rows { margin-left: 16px; margin-right: 16px; }
 .card .link { margin-top: 6px; }
 
 /* ---------- shopping ---------- */
@@ -810,12 +812,18 @@ button.day-head { cursor: pointer; }
   .receipt { margin: 8px 0 0; padding: 18px 20px 12px; }
   .confirm { flex-direction: row; justify-content: space-between; align-items: center; padding: 22px 0 0; }
   .wk-nav { margin: 0 0 14px; }
-  .wk-hint { margin: -6px 0 12px; }
+  .wk-strip { margin: 0 0 22px; gap: 10px; }
+  .wk-chip { min-height: 92px; padding: 12px 4px; gap: 5px; }
+  .wk-chip .c-wd { font-size: 12px; }
+  .wk-chip .c-d { font-size: 26px; }
+  .wk-chip.prep::after { top: 8px; right: 8px; width: 9px; height: 9px; }
+  .wk-body { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); align-items: start; gap: 28px; }
+  .wk-detail { margin: 0; }
+  .wd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .wd-card.wide { grid-column: 1 / -1; }
+  .wk-later > .sec-h, .wk-later > .rows { margin-left: 0; margin-right: 0; }
+  .wk-later .sec-h { margin-top: 0; }
   /* 4 + 3 on most screens, seven in a row only when the window is really wide. */
-  .days { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 12px; padding: 0 0 18px; overflow: visible; }
-  .day .meal .btn-row { flex-direction: column; gap: 6px; }
-  .day { min-height: 240px; padding: 14px 12px; }
-  .day h2 { font-size: 17px; }
   .device-stage { display: flex !important; flex-direction: column; align-items: center; gap: 14px; }
   .device-stage > .screen { width: 390px; height: min(780px, calc(100vh - 120px)); min-height: 560px; min-height: 0; border-radius: 44px; overflow: hidden; box-shadow: 0 0 0 10px var(--white), 0 0 0 11px var(--line), 0 30px 60px -20px color-mix(in srgb, var(--ink) 30%, transparent); }
   .device-stage .ate-body.center { padding-bottom: 40px; }
@@ -834,14 +842,10 @@ button.day-head { cursor: pointer; }
   .guide .btn { align-self: center; }
 }
 
-@media (min-width: 1500px) {
-  .days { grid-template-columns: repeat(7, minmax(0, 1fr)); }
-}
-
 @media (min-width: 900px) and (max-width: 1180px) {
+  .wk-body { grid-template-columns: minmax(0, 1fr); }
   .cols2, .home .cols2 { grid-template-columns: minmax(0, 1fr); }
   .home-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "eat" "today" "fridge"; grid-template-rows: auto; }
-  .days { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .rgrid { grid-template-columns: minmax(0, 1fr); }
   .src { position: static; }
 }
