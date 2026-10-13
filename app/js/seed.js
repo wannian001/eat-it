@@ -58,6 +58,8 @@ export const BUILTIN = {
         { food: 'tomato', qty: 4, unit: 'pc', place: 'fridge', spot: 'crisper', date: est('2026-10-17') },
         { food: 'broccoli', qty: 1, unit: 'pc', place: 'fridge', spot: 'crisper', date: est('2026-10-15') },
       ]),
+      // Away from tomorrow for three days: the milk, the curry and the avocados would go off meanwhile.
+      mode('2026-10-11', 'out'), mode('2026-10-12', 'out'), mode('2026-10-13', 'out'),
     ],
     // What the simulated "AI scan" of the bench returns: the 7 lines on canvas board 03.
     photo: { when: DAY, lines: [
@@ -125,7 +127,8 @@ export const BUILTIN = {
         { food: 'mushrooms', qty: 200, unit: 'g', place: 'fridge', spot: 'crisper', date: est('2026-10-13') },
         { food: 'bread', qty: 1, unit: 'pc', place: 'pantry', date: bb('2026-10-12'), amount: 'Half' },
       ]),
-      mode('2026-10-13', 'out'),
+      // Eating out tomorrow and the day after: the chicken, strawberries and bread would go off meanwhile.
+      mode('2026-10-11', 'out'), mode('2026-10-12', 'out'),
     ],
     photo: { when: DAY, lines: [
       { food: 'apple', qty: 4, unit: 'pc', date: estDays(14) },

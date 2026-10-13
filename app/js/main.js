@@ -7,7 +7,7 @@ import { addDays, daysBetween, weekday } from './dates.js';
 import { CONFIG } from './config.js';
 import { openStore, localAdapter, httpAdapter, prefs } from './store.js';
 import { matchFood, customId, food, foodName, guessDays, defaultQty, shortName } from './foods.js';
-import { placeOf, firstOfKind, modeOf } from './state.js';
+import { placeOf, firstOfKind, modeOf, awayRuns } from './state.js';
 import { ICON, appIcon, wordmark } from './icons.js';
 import { esc } from './ui.js';
 import { homePage } from './views/home.js';
@@ -425,7 +425,12 @@ const ACT = {
     const [day, ans] = split(arg);
     const mode = ans === 'home' ? 'cook' : ans === 'out' ? 'out' : 'none';
     const e = await dispatch({ type: 'plan', day, mode: ans === 'skip' ? 'cook' : mode, skip: ans === 'skip' });
-    if (ans === 'out') toast(day > app.store.today ? `Eating out on ${weekday(day)}.` : day === app.store.today ? 'Eating out today.' : 'Ate out: nothing to record.', e.id);
+    if (ans === 'out' && day > app.store.today) {
+      // Planning ahead: say what that means for the food at home.
+      const run = awayRuns(app.store.state, app.store.today, 28).find((r) => r.from <= day && day <= r.to);
+      const n = run ? run.lots.length : 0;
+      toast(n ? `Eating out ${weekday(day)}. ${n} thing${n > 1 ? 's' : ''} to use by ${run.prep === app.store.today ? 'today' : weekday(run.prep)}.` : `Eating out ${weekday(day)}.`, e.id);
+    } else if (ans === 'out') toast(day === app.store.today ? 'Eating out today.' : 'Ate out: nothing to record.', e.id);
   },
   // The "Out tonight" widget (board 05).
   async out() {
@@ -603,6 +608,7 @@ const ACT = {
     try { for (const k of Object.keys(localStorage)) if (k.startsWith('eatit:')) localStorage.removeItem(k); } catch { /* storage blocked */ }
     location.reload();
   },
+  'away-ok'(from) { prefs.set(`away:${app.store.persona.id}:${from}`, true); render(); },
   'guide-done'() { prefs.set(`guide:${app.store.persona.id}`, true); render(); },
   'ate-close'() { go(ateBack()); },
   'ate-back'() {

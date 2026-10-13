@@ -1,7 +1,7 @@
 // Pieces several pages share: the open fridge, food tiles, Eat first, Today, Room at home.
 import { food, foodName, shortName } from '../foods.js';
 import { eatFirst, oldestFrozen, units, nudge, hasFreezer, mealAnswer, mealSkipped } from '../state.js';
-import { frozenWeeks, urgency, longDay } from '../dates.js';
+import { frozenWeeks, urgency, longDay, weekday, addDays } from '../dates.js';
 import { shelvesOf } from '../seed.js';
 import { ICON, placeIcon, appIcon } from '../icons.js';
 import { esc, pic, tag, dotHtml, label } from '../ui.js';
@@ -130,6 +130,13 @@ export function eatFirstHtml(app, { limit = 3 } = {}) {
     </div>
   </section>`;
 }
+
+// "Eating out tomorrow to Mon" / "Eating out Sat": a run of days out (state.awayRuns).
+export function awayTitle(r, today) {
+  const w = (d) => (d === addDays(today, 1) ? 'tomorrow' : weekday(d));
+  return r.from === r.to ? `Eating out ${w(r.from)}` : `Eating out ${w(r.from)} to ${weekday(r.to)}`;
+}
+export const awayWhen = (r, today) => (r.prep === today ? 'today' : `by ${weekday(r.prep)}`);
 
 // Today on Home: just "Ate at home today?" (and the freezer nudge when a bag is old enough).
 export function todayHtml(app) {

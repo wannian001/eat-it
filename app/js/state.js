@@ -31,7 +31,7 @@
 //   undo     { target }
 
 import { FOODS, food as foodOf } from './foods.js';
-import { addDays, urgency, kindOrder, daysBetween } from './dates.js';
+import { addDays, urgency, kindOrder, daysBetween, lastGood } from './dates.js';
 
 const THAWED_DAYS = 1; // our guess, shown dashed like every estimate
 const clone = (x) => JSON.parse(JSON.stringify(x ?? null));
@@ -65,6 +65,24 @@ export const placeOf = (s, id) => s.places.find((p) => p.id === id) || null;
 export const firstOfKind = (s, kind) => s.places.find((p) => p.kind === kind) || null;
 export const hasFreezer = (s) => !!firstOfKind(s, 'frozen');
 const isFrozenPlace = (s, id) => placeOf(s, id)?.kind === 'frozen';
+
+// Days marked "eating out" ahead, grouped into runs (Sat–Sun), each with the food that would go off
+// while you're away. prep = the last day at home before, when to use or freeze it.
+export function awayRuns(s, today, horizon = 14) {
+  const days = Object.keys(s.plan).filter((d) => s.plan[d].mode === 'out' && d > today && daysBetween(today, d) <= horizon).sort();
+  const runs = [];
+  for (const d of days) {
+    const last = runs[runs.length - 1];
+    if (last && addDays(last.to, 1) === d) last.to = d; else runs.push({ from: d, to: d });
+  }
+  return runs.map((r) => ({
+    ...r,
+    prep: addDays(r.from, -1),
+    lots: [...s.lots.values()]
+      .filter((l) => l.owner !== 'housemate' && !isFrozenPlace(s, l.place) && lastGood(l.date) >= r.from && lastGood(l.date) <= r.to)
+      .sort((a, b) => lastGood(a.date).localeCompare(lastGood(b.date))),
+  })).filter((r) => r.lots.length);
+}
 
 // What happened on each day, for the week calendar ("Ate", "Added", …).
 function note(s, day, entry) {

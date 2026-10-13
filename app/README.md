@@ -56,6 +56,21 @@ AI 把这句话对上家里有的东西。说了具体数量的（"two tomatoes"
 
 以后的日子可以提前定：比如确定周四一天都不在家吃，点开周四，问 **Eating at home on Thursday?**，选 **No, eating out**。卡片上会标 Eating out；那天到期的食物，卡片里会提醒前一天吃掉。想改主意就点 Change。
 
+### 出去吃之前的提醒
+
+在周历里标了哪几天出去吃（可以连着几天，比如周六周日），App 会看冰箱里**哪些东西会在你不在家那几天到期**，在你出门前最后一天在家时提醒你：
+
+- **首页**：出门前两天内出现一张大提醒卡，比如 "Eating out tomorrow to Sun · Use or freeze these today"，列出那几样东西。能冻的（肉、剩菜、面包）在有冷冻室时直接给 **Freeze** 按钮。点 **Got it** 收起。
+- **周历**：出门前那天的卡片上写着同样的提醒。
+- **锁屏通知**：出门前那天推送，比如 "Eating out tomorrow to Fri · Use or freeze today: milk, curry and avocados."
+- 在周历里标 "No, eating out" 时，提示条会直接说 "Eating out Sat. 2 things to use by Fri."
+
+May 和 John 的示例数据里都已经标好了接下来几天出去吃，一打开就能看到。
+
+| 手机：首页提醒（May，没有冷冻室） | 手机：首页提醒（John，可以冻） | 手机：锁屏通知 |
+|---|---|---|
+| <img src="screenshots/phone-15-away-may.png" width="220" alt="首页：Eating out tomorrow"> | <img src="screenshots/phone-16-away-john.png" width="220" alt="首页：Freeze 按钮"> | <img src="screenshots/phone-13-lock-screen.png" width="220" alt="锁屏：出去吃之前的提醒"> |
+
 | 手机：点开今天 | 手机：选了 Yes 之后 | 手机：提前标周四不在家吃 |
 |---|---|---|
 | <img src="screenshots/phone-08-week-open.png" width="220" alt="周历：Ate at home today?"> | <img src="screenshots/phone-09-week-record.png" width="220" alt="周历：Record what you used?"> | <img src="screenshots/phone-10-week-eat-out.png" width="220" alt="周历：Eating out on Thursday"> |
@@ -91,7 +106,7 @@ AI 把这句话对上家里有的东西。说了具体数量的（"two tomatoes"
 | Food at home | `#food` | 按地方分页，图 / 列表（电脑上是表格），搜索，Mine / Shared，编辑地方，拍照估有多满 |
 | Add food | `#add` `#ways` `#scan` `#review` | 六种添加方式和核对 |
 | I ate | `#ate` | 语音出库 |
-| Week calendar | `#week` | 一周七张日卡（照个人系统"本周"页的样子）：这天要吃掉的（Eat by）、冷冻满 4 周的那袋、今天要不要解冻；点开今天或以前的日子记吃饭，点开以后的日子提前标出哪天不在家吃；底下是 Coming up |
+| Week calendar | `#week` | 一周七张日卡（照个人系统"本周"页的样子）：这天要吃掉的（Eat by）、冷冻满 4 周的那袋、今天要不要解冻；点开今天或以前的日子记吃饭，点开以后的日子提前标出哪天不在家吃（出门前一天会提醒哪些东西要先用掉或冻起来）；底下是 Coming up |
 | Shopping list | `#shop` | 和室友共享的清单、谁去买、买之前的提醒（家里已有、室友在买、放不下）、家里还有多少空间 |
 | Household | `#settings` | 家庭成员和邀请码、同住的人能看到什么、地方、提醒、邮件 / 超市账户、个人资料、数据 |
 | 桌面小组件、锁屏 | `#widgets` `#lock` | 画布 05/06 的预览，点了会真的改冰箱 |
@@ -178,10 +193,11 @@ POST {ai}  { "text": "说的那句话", "stock": [{ "food": "curry", "name": "Cu
 cd app && node --test
 ```
 
-Node 18 以上，无依赖（`npm test` 也行）。26 个测试，覆盖日期标签、Eat first、语音解析、追问和回答、AI 服务器和退回本地、分袋、出去吃和提醒、手动改库存、周历、撤销、解冻 / 冷冻 / 扔掉、地方和设置、新用户设置、起始数据对齐到第一天、HTTP 存储；`tests/review.test.js` 专门防 10-13 审查发现的问题（"egg noodles" 不能动鸡蛋、"Plenty left" 不能变多、同一样东西只问一次、AI 返回克数要改成追问、移出冷冻室要解冻、坏的服务器数据不能卡住启动）。
+Node 18 以上，无依赖（`npm test` 也行）。28 个测试，覆盖日期标签、Eat first、语音解析、追问和回答、AI 服务器和退回本地、分袋、出去吃和提醒、手动改库存、周历、撤销、解冻 / 冷冻 / 扔掉、地方和设置、新用户设置、起始数据对齐到第一天、HTTP 存储；`tests/review.test.js` 专门防 10-13 审查发现的问题（"egg noodles" 不能动鸡蛋、"Plenty left" 不能变多、同一样东西只问一次、AI 返回克数要改成追问、移出冷冻室要解冻、坏的服务器数据不能卡住启动）。
 
 ## 10-13 改了什么
 
+- 出去吃之前的提醒：组员觉得 meals 用处不大。现在标了哪几天出去吃，App 会在出门前一天提醒哪些东西会在你不在家时过期（首页大提醒、周历、锁屏通知），能冻的直接给 Freeze。
 - 仓库公开并改名为 `eat-it`（原名 info90006-shelflife），在线演示改由这个仓库自动发布，不再用单独的演示仓库。公开前删掉了旧原型里的参与者引语。
 - 组员试用反馈：
   - 语音用一次之后就不好使：现在全程只用一个识别器，等上一次结束再开始，浏览器不回结束信号也不会卡住。

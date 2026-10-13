@@ -2,11 +2,11 @@
 // an iPhone, so these are live previews drawn from the same fridge; taps here change the fridge.
 
 import { food, foodName, shortName } from '../foods.js';
-import { eatFirst, oldestFrozen, frozenLots, bagNumber, nudge, modeOf } from '../state.js';
+import { eatFirst, oldestFrozen, frozenLots, bagNumber, nudge, modeOf, awayRuns } from '../state.js';
 import { urgency, frozenWeeks, frozenFor, longDay, dot } from '../dates.js';
 import { ICON, appIcon } from '../icons.js';
 import { esc, pic, label } from '../ui.js';
-import { shelfGroups } from './parts.js';
+import { shelfGroups, awayTitle } from './parts.js';
 
 function freshGroups(app) {
   const s = app.store.state, today = app.store.today;
@@ -87,7 +87,16 @@ function lockInner(app) {
   const clock = app.store.clock;
   const ring = `<svg viewBox="0 0 44 44" width="48" height="48" aria-hidden="true"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--white)" stroke-width="4.5" opacity=".7"/><circle cx="22" cy="22" r="18" fill="none" stroke="var(--tomato)" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="${Math.min(1, n / 3) * 113} 113" transform="rotate(-90 22 22)"/></svg>`;
   let notif = '';
-  if (due && !app.ui.lockDismissed) {
+  const away = awayRuns(s, today).find((r) => r.prep === today);
+  if (away && !app.ui.lockDismissed) {
+    const list = away.lots.map((l) => foodName(l.food, 2, l).toLowerCase());
+    const body = names ? `Use or freeze today: ${list.slice(0, -1).join(', ')}${list.length > 1 ? ' and ' : ''}${list[list.length - 1]}.` : `${list.length} thing${list.length > 1 ? 's' : ''} to use or freeze today.`;
+    notif = `<section class="notif" aria-label="Notification from Eat It!">
+      <div class="nf-h">${appIcon({ size: 18, badge: false })}<span>Eat It!</span><small>now</small></div>
+      <div class="nf-b">${names ? `<span class="nf-pics">${away.lots.slice(0, 3).map((l) => pic(l.food, { size: 30, lot: l })).join('')}</span>` : ''}<div><b>${esc(awayTitle(away, today))}</b><small>${esc(body)}</small></div></div>
+      <div class="btn-row"><button class="btn btn-primary sm" data-act="go" data-arg="home">Open</button><button class="btn btn-secondary sm" data-act="lock-dismiss">Later</button></div>
+    </section>`;
+  } else if (due && !app.ui.lockDismissed) {
     const title = names ? `${shortName(due.food, due)}, bag ${bagNumber(s, due)}` : 'The oldest bag in your freezer';
     notif = `<section class="notif" aria-label="Notification from Eat It!">
       <div class="nf-h">${appIcon({ size: 18, badge: false })}<span>Eat It!</span><small>now</small></div>
