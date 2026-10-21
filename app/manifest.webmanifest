@@ -1,0 +1,9 @@
+{
+  "name": "Eat It!",
+  "short_name": "Eat It!",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
