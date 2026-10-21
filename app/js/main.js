@@ -9,7 +9,8 @@ import { openStore, localAdapter, httpAdapter, prefs } from './store.js';
 import { matchFood, customId, food, foodName, guessDays, defaultQty, shortName } from './foods.js';
 import { placeOf, firstOfKind, modeOf, awayRuns } from './state.js';
 import { ICON, appIcon, wordmark } from './icons.js';
-import { esc } from './ui.js';
+import { esc, langSwitch } from './ui.js';
+import { L, setLang, speechLang, dz, plural } from './i18n.js';
 import { homePage } from './views/home.js';
 import { foodPage } from './views/food.js';
 import { addPage, scanPage, waysPage, reviewPage, buildLines, newLine, putLines } from './views/add.js';
@@ -31,8 +32,9 @@ const ROUTES = { home: homePage, food: foodPage, add: addPage, ways: waysPage, s
 const FULL = new Set(['add', 'scan', 'ate', 'widgets', 'lock']); // phone: no tab bar
 const NO_TABS = new Set([...FULL, 'review', 'ways']);
 const SHEETS = { lot: lotSheet, places: placesSheet, measure: measureSheet, type: typeSheet, consent: consentSheet, email: emailSheet, pick: pickSheet };
-const NAV = [['home', 'Home', 'home'], ['food', 'Food at home', 'fridge'], ['week', 'Week calendar', 'plan'], ['shop', 'Shopping list', 'cart'], ['settings', 'Household', 'settings']];
-const TABS = [['home', 'Home', 'fridge'], ['food', 'Food', 'list'], ['week', 'Week', 'plan'], ['shop', 'Shop', 'cart'], ['settings', 'Me', 'user']];
+const NAV = () => [['home', L('Home', '首页'), 'home'], ['food', L('Food at home', '家里的食物'), 'fridge'], ['week', L('Week calendar', '周历'), 'plan'], ['shop', L('Shopping list', '购物清单'), 'cart'], ['settings', L('Household', '同住与设置'), 'settings']];
+const TABS = () => [['home', L('Home', '首页'), 'fridge'], ['food', L('Food', '食物'), 'list'], ['week', L('Week', '周历'), 'plan'], ['shop', L('Shop', '购物'), 'cart'], ['settings', L('Me', '我的'), 'user']];
+
 
 const freshAdd = (over = {}) => ({ mode: 'photo', picks: [], scanning: false, src: 'picks', img: null, lines: [], edit: null, editQty: null, ...over });
 const freshAte = (day = null) => ({ phase: 'idle', day, text: '', items: [], questions: [], answers: {}, step: 0, result: null });
@@ -52,19 +54,20 @@ function shell(content) {
   // Desktop side bar: can be folded to a narrow strip of icons; the logo opens it again.
   const closed = prefs.get('side', 'open') === 'closed';
   const tip = (t) => (closed ? ` title="${esc(t)}" aria-label="${esc(t)}"` : '');
-  const side = `<aside class="side" aria-label="Main">
-    <div class="side-brand"><button class="brand-btn" data-act="side" aria-expanded="${!closed}" aria-label="${closed ? 'Open the menu' : 'Eat It! · fold the menu'}"${closed ? ' title="Open the menu"' : ''}>${appIcon({ size: 32, badge: false })}<span class="lbl">${wordmark('sm')}</span></button>${closed ? '' : `<button class="side-fold" data-act="side" aria-label="Fold the menu" title="Fold the menu">${ICON.back({ size: 16 })}</button>`}</div>
-    <div class="side-acts"><button class="btn btn-primary" data-act="go" data-arg="add"${tip('Add food')}>${ICON.plus({ size: 18, stroke: 2.4 })}<span class="lbl">Add food</span></button><button class="btn btn-secondary" data-act="go" data-arg="ate"${tip('I ate')}>${ICON.minus({ size: 18, stroke: 2.4 })}<span class="lbl">I ate</span></button></div>
-    <nav class="side-nav">${NAV.map(([r, t, ic]) => `<button class="nav-item${route === r ? ' on' : ''}" data-act="go" data-arg="${r}"${route === r ? ' aria-current="page"' : ''}${tip(t)}>${ICON[ic]({ size: 20 })}<span class="lbl">${t}</span></button>`).join('')}</nav>
+  const side = `<aside class="side" aria-label="${L('Main', '主菜单')}">
+    <div class="side-brand"><button class="brand-btn" data-act="side" aria-expanded="${!closed}" aria-label="${closed ? L('Open the menu', '展开菜单') : L('Eat It! · fold the menu', 'Eat It! · 收起菜单')}"${closed ? ` title="${L('Open the menu', '展开菜单')}"` : ''}>${appIcon({ size: 32, badge: false })}<span class="lbl">${wordmark('sm')}</span></button>${closed ? '' : `<button class="side-fold" data-act="side" aria-label="${L('Fold the menu', '收起菜单')}" title="${L('Fold the menu', '收起菜单')}">${ICON.back({ size: 16 })}</button>`}</div>
+    <div class="side-acts"><button class="btn btn-primary" data-act="go" data-arg="add"${tip(L('Add food', '添加食物'))}>${ICON.plus({ size: 18, stroke: 2.4 })}<span class="lbl">${L('Add food', '添加食物')}</span></button><button class="btn btn-secondary" data-act="go" data-arg="ate"${tip(L('I ate', '我吃了'))}>${ICON.minus({ size: 18, stroke: 2.4 })}<span class="lbl">${L('I ate', '我吃了')}</span></button></div>
+    <nav class="side-nav">${NAV().map(([r, t, ic]) => `<button class="nav-item${route === r ? ' on' : ''}" data-act="go" data-arg="${r}"${route === r ? ' aria-current="page"' : ''}${tip(t)}>${ICON[ic]({ size: 20 })}<span class="lbl">${t}</span></button>`).join('')}</nav>
     <div class="side-bottom">
+      ${langSwitch({ compact: closed })}
       ${ui.userMenu ? userList(app, { compact: true }) : ''}
-      <button class="side-me" data-act="user-menu" aria-expanded="${!!ui.userMenu}" aria-label="Signed in as ${esc(name)}. Switch user"${closed ? ` title="${esc(name)}"` : ''}><span class="avatar av-0">${esc(name[0])}</span><span class="lbl"><b>${esc(name)}</b><small>${esc(s.house?.name || 'Lives alone')}</small></span>${ICON.settings({ size: 16 })}</button>
+      <button class="side-me" data-act="user-menu" aria-expanded="${!!ui.userMenu}" aria-label="${esc(L(`Signed in as ${name}. Switch user`, `当前用户：${name}。切换用户`))}"${closed ? ` title="${esc(name)}"` : ''}><span class="avatar av-0">${esc(name[0])}</span><span class="lbl"><b>${esc(name)}</b><small>${esc(dz(s.house?.name || 'Lives alone'))}</small></span>${ICON.settings({ size: 16 })}</button>
     </div>
   </aside>`;
-  const tabs = NO_TABS.has(route) ? '' : `<nav class="tabs" aria-label="Main">${TABS.map(([r, t, ic]) => `<button class="tab${route === r ? ' on' : ''}" data-act="go" data-arg="${r}"${route === r ? ' aria-current="page"' : ''}>${ICON[ic]({ size: 22 })}<span>${t}</span></button>`).join('')}</nav>`;
+  const tabs = NO_TABS.has(route) ? '' : `<nav class="tabs" aria-label="${L('Main', '主菜单')}">${TABS().map(([r, t, ic]) => `<button class="tab${route === r ? ' on' : ''}" data-act="go" data-arg="${r}"${route === r ? ' aria-current="page"' : ''}>${ICON[ic]({ size: 22 })}<span>${t}</span></button>`).join('')}</nav>`;
   const pill = route === 'home' || route === 'food'
-    ? `<div class="pill-bar"><div class="seg"><button class="seg-primary" data-act="go" data-arg="add">${ICON.plus({ size: 18, stroke: 2.4 })}Add food</button><button class="seg-plain" data-act="go" data-arg="ate">${ICON.minus({ size: 18, stroke: 2.4 })}I ate</button></div></div>` : '';
-  const toast = ui.toast ? `<div class="toast" role="status">${esc(ui.toast.msg)}${ui.toast.undo ? `<button data-act="undo" data-arg="${esc(ui.toast.undo)}">Undo</button>` : ''}</div>` : '';
+    ? `<div class="pill-bar"><div class="seg"><button class="seg-primary" data-act="go" data-arg="add">${ICON.plus({ size: 18, stroke: 2.4 })}${L('Add food', '添加食物')}</button><button class="seg-plain" data-act="go" data-arg="ate">${ICON.minus({ size: 18, stroke: 2.4 })}${L('I ate', '我吃了')}</button></div></div>` : '';
+  const toast = ui.toast ? `<div class="toast" role="status">${esc(ui.toast.msg)}${ui.toast.undo ? `<button data-act="undo" data-arg="${esc(ui.toast.undo)}">${L('Undo', '撤销')}</button>` : ''}</div>` : '';
   return `<div class="shell r-${route}${FULL.has(route) ? ' full' : ''}${NO_TABS.has(route) ? ' no-tabs' : ''}${closed ? ' side-closed' : ''}"${app.ui.sheet ? ' inert' : ''}>${side}<main class="main" id="main">${content}</main>${pill}${tabs}${toast}</div>`;
 }
 
@@ -216,7 +219,7 @@ function recognizer() {
   if (!SR) return null;
   if (!rec) {
     rec = new SR();
-    rec.lang = 'en-AU';
+    rec.lang = speechLang();
     rec.interimResults = true;
     rec.continuous = true;
     rec.onstart = () => { recOn = true; };
@@ -287,7 +290,7 @@ function listen() {
   session = mine;
   const begin = () => {
     if (session !== mine) return;
-    try { recognizer().start(); recOn = true; } catch { session = null; voiceOff(); }
+    try { const r = recognizer(); r.lang = speechLang(); r.start(); recOn = true; } catch { session = null; voiceOff(); }
   };
   if (!recOn) { begin(); return; }
   // The last session is still ending: start when it has. If the browser never says so, start over
@@ -315,7 +318,7 @@ const line = (k) => app.ui.add.lines.find((l) => l.key === k);
 const split = (arg) => String(arg ?? '').split('|');
 const val = (id) => byId(id)?.value ?? '';
 const dispatch = (e) => app.store.dispatch(e);
-const lotName = (id) => { const l = app.store.state.lots.get(id); return l ? foodName(l.food, 2, l) : 'Food'; };
+const lotName = (id) => { const l = app.store.state.lots.get(id); return l ? foodName(l.food, 2, l) : L('Food', '食物'); };
 
 function startScan(img) {
   const a = app.ui.add;
@@ -336,7 +339,7 @@ function startScan(img) {
 
 function addShop(name, own = 'mine') {
   dispatch({ type: 'shop.add', id: `s${Date.now().toString(36)}`, name, own, who: app.store.state.profile.name });
-  toast(`${name} added to the list.`);
+  toast(L(`${name} added to the list.`, `${dz(name)} 已加进清单。`));
 }
 
 // Where I ate goes back to: the week calendar (with that day open) when it was opened from there or
@@ -367,7 +370,7 @@ const ACT = {
     const name = lotName(lot);
     if (app.ui.sheet?.type === 'lot') app.ui.sheet = null;
     const e = await dispatch({ type: 'use', lot, how });
-    toast(how === 'some' ? `${name}: used some.` : `${name}: one fewer.`, e.id);
+    toast(how === 'some' ? L(`${name}: used some.`, `${name}：用了一些。`) : L(`${name}: one fewer.`, `${name}：少了一个。`), e.id);
   },
   est(arg) {
     const [id, n] = split(arg);
@@ -383,7 +386,7 @@ const ACT = {
     const fz = firstOfKind(app.store.state, 'frozen');
     if (!fz) return;
     const e = await dispatch({ type: 'freeze', lot: id, place: fz.id });
-    toast(`${lotName(id)} is in the ${fz.name.toLowerCase()}.`, e.id);
+    toast(L(`${lotName(id)} is in the ${fz.name.toLowerCase()}.`, `${lotName(id)} 放进${dz(fz.name)}了。`), e.id);
   },
   async thaw(id) {
     const s = app.store.state, l = s.lots.get(id);
@@ -391,13 +394,13 @@ const ACT = {
     if (!l || !cold) return;
     if (app.ui.sheet?.type === 'lot') app.ui.sheet = null;
     const e = await dispatch({ type: 'thaw', lot: id, place: cold.id, spot: spotFor(l.food, l.owner, app.store.persona, cold) });
-    toast(`${shortName(l.food, l)} moves to the ${cold.name.toLowerCase()} tonight.`, e.id);
+    toast(L(`${shortName(l.food, l)} moves to the ${cold.name.toLowerCase()} tonight.`, `今晚把${shortName(l.food, l)}挪到${dz(cold.name)}解冻。`), e.id);
   },
   async toss(id) {
     const name = lotName(id);
     app.ui.sheet = null;
     const e = await dispatch({ type: 'toss', lot: id });
-    toast(`${name} removed.`, e.id);
+    toast(L(`${name} removed.`, `${name} 已移除。`), e.id);
   },
   // Record what was used on a given day (today or earlier) by voice.
   'ate-for'(day) { app.ui.ateDay = day === app.store.today ? null : day; app.ui.ateFrom = app.route; app.ui.sheet = null; go('ate'); },
@@ -413,15 +416,16 @@ const ACT = {
       // Planning ahead: say what that means for the food at home.
       const run = awayRuns(app.store.state, app.store.today, 28).find((r) => r.from <= day && day <= r.to);
       const n = run ? run.lots.length : 0;
-      toast(n ? `Eating out ${weekday(day)}. ${n} thing${n > 1 ? 's' : ''} to use by ${run.prep === app.store.today ? 'today' : weekday(run.prep)}.` : `Eating out ${weekday(day)}.`, e.id);
-    } else if (ans === 'out') toast(day === app.store.today ? 'Eating out today.' : 'Ate out: nothing to record.', e.id);
+      const by = run?.prep === app.store.today ? L('today', '今天') : weekday(run?.prep || day);
+      toast(n ? L(`Eating out ${weekday(day)}. ${n} ${plural(n, 'thing')} to use by ${by}.`, `${weekday(day)}在外面吃。有 ${n} 样要${run.prep === app.store.today ? '今天' : `在${by}前`}用掉。`) : L(`Eating out ${weekday(day)}.`, `${weekday(day)}在外面吃。`), e.id);
+    } else if (ans === 'out') toast(day === app.store.today ? L('Eating out today.', '今天在外面吃。') : L('Ate out: nothing to record.', '在外面吃的，不用记。'), e.id);
   },
   // The "Out tonight" widget (board 05).
   async out() {
     const today = app.store.today;
     const on = modeOf(app.store.state, today) !== 'out';
     const e = await dispatch({ type: 'plan', day: today, mode: on ? 'out' : 'none' });
-    toast(on ? 'Eating out tonight.' : 'Back to eating at home.', e.id);
+    toast(on ? L('Eating out tonight.', '今晚在外面吃。') : L('Back to eating at home.', '改回在家吃。'), e.id);
   },
   'week-move'(n) { app.ui.weekOffset = Number(n) === 0 ? 0 : (app.ui.weekOffset || 0) + Number(n); render(); },
   async qty(arg) {
@@ -430,9 +434,9 @@ const ACT = {
     const q = Math.max(0, Number(n));
     if (q === 0 && app.ui.sheet?.type === 'lot') app.ui.sheet = null;
     const e = await dispatch({ type: 'qty', lot, qty: q });
-    if (q === 0) toast(`${name}: all gone.`, e.id);
+    if (q === 0) toast(L(`${name}: all gone.`, `${name}：没有了。`), e.id);
   },
-  async later() { await dispatch({ type: 'snooze', until: addDays(app.store.today, 1) }); toast('Reminder moved to tomorrow.'); },
+  async later() { await dispatch({ type: 'snooze', until: addDays(app.store.today, 1) }); toast(L('Reminder moved to tomorrow.', '提醒改到明天。')); },
   'lock-dismiss'() { app.ui.lockDismissed = true; render(); },
   async undo(arg) {
     for (const id of split(arg).join(',').split(',').filter(Boolean)) await dispatch({ type: 'undo', target: id });
@@ -454,23 +458,23 @@ const ACT = {
     const name = val('np-name').trim();
     if (!name) { byId('np-name')?.focus(); return; }
     await dispatch({ type: 'place.add', id: `p${Date.now().toString(36)}`, name, kind: val('np-kind') || 'room' });
-    toast(`${name} added.`);
+    toast(L(`${name} added.`, `已添加${name}。`));
   },
-  async 'place-add-quick'(arg) { const [name, kind] = split(arg); await dispatch({ type: 'place.add', id: `p${Date.now().toString(36)}`, name, kind }); toast(`${name} added.`); },
+  async 'place-add-quick'(arg) { const [name, kind] = split(arg); await dispatch({ type: 'place.add', id: `p${Date.now().toString(36)}`, name, kind }); toast(L(`${name} added.`, `已添加${dz(name)}。`)); },
   'measure-demo'() { measureStart(null); },
   'measure-again'() { app.ui.sheet = { type: 'measure', place: app.ui.sheet.place, phase: 'pick' }; render(); },
   async 'measure-save'() {
     const m = app.ui.sheet;
     await dispatch({ type: 'place.edit', id: m.place, full: m.val, src: 'photo' });
     app.ui.sheet = null;
-    toast('Saved. The photo was not kept.');
+    toast(L('Saved. The photo was not kept.', '已保存。照片没有留下。'));
   },
 
   method(k) {
     const s = app.store.state;
     if (k === 'email') { app.ui.sheet = { type: 'email' }; render(); return; }
     if (k === 'type') { app.ui.sheet = { type: 'type', name: '' }; render(); return; }
-    if (k === 'account') { if (s.links.account) toast('Your supermarket account is already linked.'); else { app.ui.sheet = { type: 'consent' }; render(); } return; }
+    if (k === 'account') { if (s.links.account) toast(L('Your supermarket account is already linked.', '超市账号已经关联了。')); else { app.ui.sheet = { type: 'consent' }; render(); } return; }
     app.ui.add = freshAdd({ mode: k });
     go('scan');
   },
@@ -539,7 +543,7 @@ const ACT = {
     setTimeout(() => { app.ui.flash = false; }, 1500);
     go('home');
     const e = await dispatch({ type: 'put', lines, source: ['receipt', 'email'].includes(src) ? src : undefined });
-    toast(`${lines.length} item${lines.length > 1 ? 's' : ''} added.`, e.id);
+    toast(L(`${lines.length} ${plural(lines.length, 'item')} added.`, `已添加 ${lines.length} 样。`), e.id);
   },
   async 'type-add'() {
     const name = val('qa-name').trim();
@@ -555,13 +559,13 @@ const ACT = {
     const unit = known ? food(f).unit : 'pc';
     app.ui.sheet = null;
     const e = await dispatch({ type: 'put', lines: [{ food: f, name: known ? null : name, cat: known ? null : 'other', qty, unit, place: place.id, spot: spotFor(f, owner, p, place), owner, date }] });
-    toast(`${known ? foodName(f, qty) : name} added to the ${place.name.toLowerCase()}.`, e.id);
+    toast(L(`${known ? foodName(f, qty) : name} added to the ${place.name.toLowerCase()}.`, `${known ? foodName(f, qty) : name} 已放进${dz(place.name)}。`), e.id);
   },
   async link(arg) {
     const [what, on] = split(arg);
     app.ui.sheet = null;
     await dispatch({ type: 'link', what, on: on === 'on', senders: [] });
-    toast(what === 'account' ? (on === 'on' ? 'Supermarket account linked.' : 'Supermarket account unlinked.') : on === 'on' ? 'Email connected.' : 'Email disconnected.');
+    toast(what === 'account' ? (on === 'on' ? L('Supermarket account linked.', '超市账号已关联。') : L('Supermarket account unlinked.', '超市账号已取消关联。')) : on === 'on' ? L('Email connected.', '邮箱已连接。') : L('Email disconnected.', '邮箱已断开。'));
   },
   async 'email-connect'() {
     const senders = [['em-c1', 'Online supermarket orders'], ['em-c2', 'In-store e-receipts'], ['em-c3', 'Meal-kit and delivery apps']].filter(([id]) => byId(id)?.checked).map(([, t]) => t);
@@ -604,7 +608,7 @@ const ACT = {
     const back = ateBack();
     app.ui.ate = freshAte();
     go(back);
-    if (ev) { const e = await dispatch(ev); toast('Updated your fridge.', e.id); }
+    if (ev) { const e = await dispatch(ev); toast(L('Updated your fridge.', '冰箱已更新。'), e.id); }
   },
 
   'shop-done'(id) { dispatch({ type: 'shop.done', id }); },
@@ -635,7 +639,7 @@ const ACT = {
     app.ui.confirm = null;
     await dispatch({ type: 'house', action, code });
   },
-  async 'copy-code'(code) { try { await navigator.clipboard.writeText(code); toast('Code copied.'); } catch { toast(code); } render(); },
+  async 'copy-code'(code) { try { await navigator.clipboard.writeText(code); toast(L('Code copied.', '邀请码已复制。')); } catch { toast(code); } render(); },
   export() {
     const blob = new Blob([app.store.exportJson()], { type: 'application/json' });
     const a = document.createElement('a');
@@ -652,6 +656,9 @@ const ACT = {
     app.ui = freshUi({ view: app.ui.view });
     go('home');
   },
+
+  // ----- language -----
+  lang(l) { setLang(l); app.ui.toast = null; render(); },
 
   // ----- users -----
   side() { prefs.set('side', prefs.get('side', 'open') === 'closed' ? 'open' : 'closed'); app.ui.userMenu = false; render(); },
@@ -764,7 +771,7 @@ root.addEventListener('input', (e) => {
   if (e.isComposing) return;   // Chinese / Japanese / Korean input, Android keyboards: wait for the word
   if (el.dataset.input === 'food-q') { app.ui.food.q = el.value; render(); }
   if (el.dataset.input === 'qa-name' && app.ui.sheet) { app.ui.sheet.name = el.value; render(); }
-  if (el.dataset.change === 'measure-val') { app.ui.sheet.val = Number(el.value); const out = root.querySelector('.measure-out'); if (out) out.textContent = `≈ ${el.value}% full`; }
+  if (el.dataset.change === 'measure-val') { app.ui.sheet.val = Number(el.value); const out = root.querySelector('.measure-out'); if (out) out.textContent = L(`≈ ${el.value}% full`, `约 ${el.value}% 满`); }
 });
 
 root.addEventListener('keydown', (e) => {
@@ -788,6 +795,6 @@ window.addEventListener('hashchange', onRoute);
     onRoute();
   } catch (err) {
     console.error('[eatit] could not start', err);
-    root.innerHTML = `<div class="onboard"><div class="ob-card"><h1>Something went wrong</h1><p class="muted">What's saved on this device couldn't be read.</p><div class="btn-row"><button class="btn btn-primary" data-act="boot-reset">Clear it and start again</button></div></div></div>`;
+    root.innerHTML = `<div class="onboard"><div class="ob-card"><h1>${L('Something went wrong', '出错了')}</h1><p class="muted">${L("What's saved on this device couldn't be read.", '读不了这台设备上保存的数据。')}</p><div class="btn-row"><button class="btn btn-primary" data-act="boot-reset">${L('Clear it and start again', '清空后重新开始')}</button></div></div></div>`;
   }
 })();

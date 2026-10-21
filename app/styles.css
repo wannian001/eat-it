@@ -27,8 +27,10 @@
   --photo-a: color-mix(in srgb, var(--amber-soft) 45%, var(--stone) 22%);
   --photo-b: color-mix(in srgb, var(--amber-soft) 35%, var(--stone) 30%);
 
-  --font-title: 'Bricolage Grotesque', 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Chinese has no glyphs in the two web fonts: it falls back to the system's Chinese font. */
+  --font-cjk: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei';
+  --font-title: 'Bricolage Grotesque', 'Plus Jakarta Sans', var(--font-cjk), system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', var(--font-cjk), system-ui, -apple-system, 'Segoe UI', sans-serif;
   --side: 248px;
   color-scheme: light;
 }
@@ -88,6 +90,16 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--leaf-deep)
 .seg button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; font: 700 15px var(--font-body); white-space: nowrap; }
 .seg button.on, .seg-primary { background: var(--leaf); }
 .seg.small button { min-height: 36px; padding: 0 14px; font-size: 13px; }
+
+/* Language switch: EN | 中文 (side bar, sign-in, settings); one round button in phone headers. */
+.lang-seg { display: inline-flex; align-self: flex-start; gap: 2px; padding: 3px; border-radius: 999px; background: var(--mist); }
+.lang-seg button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: var(--stone); font: 700 13px var(--font-body); }
+.lang-seg button.on { background: var(--white); color: var(--ink); box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 14%, transparent); }
+.lang-btn { flex: none; width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border-radius: 50%; border: 1.5px solid var(--line); background: var(--white); font: 800 13px var(--font-body); }
+.ob-top { display: flex; justify-content: flex-end; margin: -10px -8px 4px; }
+.lang-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+/* Tight tracking suits the Latin display font, not Chinese. */
+html:lang(zh) :is(.top h1, .phead h1, .display, .said, .ob-card h1) { letter-spacing: 0; }
 .seg[role=tablist] { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: none; border-radius: 18px; }
 .seg[role=tablist] button { flex: none; }
 .seg[role=tablist] button.on { background: var(--white); box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 15%, transparent); }

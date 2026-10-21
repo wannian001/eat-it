@@ -5,6 +5,7 @@
 // prototype. It is written for SEED_DAY and moved to the day each user is first opened (users.js).
 
 import { food as foodOf } from './foods.js';
+import { L, isZh } from './i18n.js';
 
 export const SEED_DAY = '2026-10-10';
 const DAY = SEED_DAY;
@@ -178,6 +179,11 @@ export function shelvesOf(place, persona) {
 }
 
 export const SPOT_NAMES = { top: 'Top shelf', middle: 'Middle shelf', crisper: 'Crisper drawer', shared: 'Shared shelf', mine: 'My shelf' };
+const SPOT_ZH = { top: '顶层', middle: '中间层', crisper: '果蔬抽屉', shared: '公共层', mine: '我的一层' };
+export const spotName = (k) => (isZh() ? SPOT_ZH[k] : SPOT_NAMES[k]) || '';
+
+// The three kinds of storage place, as the screens name them.
+export const placeKinds = () => ({ cold: L('Cold (fridge)', '冷藏（冰箱）'), frozen: L('Frozen (freezer)', '冷冻（冷冻室）'), room: L('Room temperature', '常温') });
 
 // Where a new item goes in a place.
 export function spotFor(foodId, owner, persona, place) {

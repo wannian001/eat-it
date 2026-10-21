@@ -3,13 +3,16 @@
 // -> "Got it" with what comes out of the fridge -> Done.
 
 import { food, foodName, shortName } from '../foods.js';
-import { longDay } from '../dates.js';
+import { weekdayLong } from '../dates.js';
 import { countOf, frozenLots, lotsOf } from '../state.js';
 import { parseAte } from '../parse.js';
 import { ICON } from '../icons.js';
 import { esc, pic, aiBadge } from '../ui.js';
+import { L, isZh } from '../i18n.js';
 
-export const LEFT = { plenty: 'Plenty left', little: 'A little left', none: 'All gone' };
+const LEFT_TEXT = { plenty: ['Plenty left', '还剩不少'], little: ['A little left', '剩一点'], none: ['All gone', '吃完了'] };
+export const LEFT = Object.keys(LEFT_TEXT);
+const leftText = (k) => L(...LEFT_TEXT[k]);
 const LEVEL = { plenty: 3, little: 1, none: 0 };
 
 function transcriptHtml(text) {
@@ -61,12 +64,12 @@ export function ateResult(store, items, answers = {}, day = null) {
 
 function inner(app) {
   const a = app.ui.ate;
-  const close = `<button class="round light" data-act="ate-close" aria-label="Close">${ICON.close({ size: 18 })}</button>`;
+  const close = `<button class="round light" data-act="ate-close" aria-label="${L('Close', '关闭')}">${ICON.close({ size: 18 })}</button>`;
 
   if (a.phase === 'thinking') {
     return `<div class="screen ate">
       <header class="cam-top">${close}</header>
-      <main class="scroll ate-body center"><p class="said">${transcriptHtml(a.text)}</p><p class="thinking">${aiBadge}Working out what you used…</p></main>
+      <main class="scroll ate-body center"><p class="said">${transcriptHtml(a.text)}</p><p class="thinking">${aiBadge}${L('Working out what you used…', '正在算你用了什么…')}</p></main>
     </div>`;
   }
 
@@ -78,37 +81,37 @@ function inner(app) {
     return `<div class="screen ate">
       <header class="cam-top">${close}<span class="ask-step">${a.step + 1} / ${a.questions.length}</span></header>
       <main class="scroll ate-body">
-        <p class="ask-kicker">${aiBadge}One quick question</p>
+        <p class="ask-kicker">${aiBadge}${L('One quick question', '问一个小问题')}</p>
         <span class="ask-pic">${pic(q.food, { bag: q.lot?.bag, size: 84, lot: q.lot })}</span>
-        <h1 class="display left">After ${a.day ? 'that' : 'today'}, ${are ? 'are' : 'is'} there any ${esc(name)} left?</h1>
-        <p class="muted">How much?</p>
-        <div class="ask-opts" role="group" aria-label="How much ${esc(name)} is left">
-          ${Object.entries(LEFT).map(([k, t]) => `<button class="ask-opt${a.answers[q.food] === k ? ' on' : ''}" data-act="ate-answer" data-arg="${k}">${level(LEVEL[k])}<span>${t}</span></button>`).join('')}
+        <h1 class="display left">${isZh() ? `${a.day ? '那天' : '今天'}吃完以后，${esc(foodName(q.food, 2, q.lot))}还有剩吗？` : `After ${a.day ? 'that' : 'today'}, ${are ? 'are' : 'is'} there any ${esc(name)} left?`}</h1>
+        <p class="muted">${L('How much?', '还剩多少？')}</p>
+        <div class="ask-opts" role="group" aria-label="${esc(L(`How much ${name} is left`, `${foodName(q.food, 2, q.lot)}还剩多少`))}">
+          ${LEFT.map((k) => `<button class="ask-opt${a.answers[q.food] === k ? ' on' : ''}" data-act="ate-answer" data-arg="${k}">${level(LEVEL[k])}<span>${leftText(k)}</span></button>`).join('')}
         </div>
       </main>
-      <div class="dock"><button class="btn btn-quiet" data-act="ate-back">${ICON.back({ size: 16 })}${a.step ? 'Back' : 'Say it again'}</button></div>
+      <div class="dock"><button class="btn btn-quiet" data-act="ate-back">${ICON.back({ size: 16 })}${a.step ? L('Back', '上一步') : L('Say it again', '重新说')}</button></div>
     </div>`;
   }
 
   if (a.phase === 'done') {
     const { rows, leftRows } = a.result;
     const tiles = rows.map((r) => {
-      const badge = r.before === 0 ? '0' : r.answer === 'none' ? 'gone' : r.answer ? (r.answer === 'little' ? 'a little' : 'plenty') : r.part && r.delta === 0 ? 'some' : `−${-r.delta}`;
-      const sr = r.before === 0 ? `${foodName(r.food, 1)}, not in your fridge` : r.answer ? `${foodName(r.food, 2)}, ${LEFT[r.answer].toLowerCase()}` : `${foodName(r.food, -r.delta || 1)}, minus ${-r.delta}`;
+      const badge = r.before === 0 ? '0' : r.answer === 'none' ? L('gone', '没了') : r.answer ? (r.answer === 'little' ? L('a little', '一点') : L('plenty', '不少')) : r.part && r.delta === 0 ? L('some', '一些') : `−${-r.delta}`;
+      const sr = r.before === 0 ? L(`${foodName(r.food, 1)}, not in your fridge`, `${foodName(r.food, 1)}，冰箱里没有`) : r.answer ? L(`${foodName(r.food, 2)}, ${leftText(r.answer).toLowerCase()}`, `${foodName(r.food, 2)}，${leftText(r.answer)}`) : L(`${foodName(r.food, -r.delta || 1)}, minus ${-r.delta}`, `${foodName(r.food, 2)}，少了 ${-r.delta}`);
       return `<span class="got-tile${r.before === 0 ? ' missing' : ''}${r.answer ? ` got-${r.answer}` : ''}" role="img" aria-label="${esc(sr)}">${pic(r.food, { bag: r.unit === 'bag', size: 50 })}<span class="got-badge">${esc(badge)}</span></span>`;
     }).join('');
     return `<div class="screen ate">
       <header class="cam-top">${close}</header>
       <main class="scroll ate-body">
-        <h1 class="display left">${rows.length ? 'Got it' : "Didn't catch any food"}</h1>
-        ${rows.length ? `<div class="got-tiles">${tiles}</div>` : '<p class="muted">Try naming the food, like "two eggs and some spinach".</p>'}
-        ${leftRows.map((r) => `<div class="left-row">${pic(r.food, { bag: true, size: 28 })}<span>${esc(shortName(r.food))} left</span><b>${r.left}</b></div>`).join('')}
-        ${rows.filter((r) => r.answer).map((r) => `<div class="left-row">${pic(r.food, { size: 28 })}<span>${esc(foodName(r.food, 2))}</span>${level(LEVEL[r.answer])}<small>${esc(LEFT[r.answer])}</small></div>`).join('')}
+        <h1 class="display left">${rows.length ? L('Got it', '记下了') : L("Didn't catch any food", '没听出食物')}</h1>
+        ${rows.length ? `<div class="got-tiles">${tiles}</div>` : `<p class="muted">${L('Try naming the food, like "two eggs and some spinach".', '试试说出食物名，比如“两个鸡蛋和一些菠菜”。')}</p>`}
+        ${leftRows.map((r) => `<div class="left-row">${pic(r.food, { bag: true, size: 28 })}<span>${esc(L(`${shortName(r.food)} left`, `${shortName(r.food)}还剩`))}</span><b>${r.left}</b></div>`).join('')}
+        ${rows.filter((r) => r.answer).map((r) => `<div class="left-row">${pic(r.food, { size: 28 })}<span>${esc(foodName(r.food, 2))}</span>${level(LEVEL[r.answer])}<small>${esc(leftText(r.answer))}</small></div>`).join('')}
       </main>
       <div class="dock col">
-        ${rows.length ? '<button class="btn btn-primary wide" data-act="ate-done">Done</button>' : ''}
-        <button class="btn btn-secondary wide" data-act="listen">Say it again</button>
-        ${rows.length ? '' : '<button class="link" data-act="ate-type-again">Type it instead</button>'}
+        ${rows.length ? `<button class="btn btn-primary wide" data-act="ate-done">${L('Done', '完成')}</button>` : ''}
+        <button class="btn btn-secondary wide" data-act="listen">${L('Say it again', '重新说')}</button>
+        ${rows.length ? '' : `<button class="link" data-act="ate-type-again">${L('Type it instead', '改成打字')}</button>`}
       </div>
     </div>`;
   }
@@ -116,21 +119,21 @@ function inner(app) {
   if (a.phase === 'listening') {
     return `<div class="screen ate">
       <header class="cam-top">${close}</header>
-      <main class="scroll ate-body"><p class="said" aria-live="polite">${a.text ? transcriptHtml(a.text) : '<span class="said-wait">Listening…</span>'}</p></main>
-      <div class="dock col center">${wave()}<button class="mic stop" data-act="stop" aria-label="Stop">${ICON.stop()}</button></div>
+      <main class="scroll ate-body"><p class="said" aria-live="polite">${a.text ? transcriptHtml(a.text) : `<span class="said-wait">${L('Listening…', '正在听…')}</span>`}</p></main>
+      <div class="dock col center">${wave()}<button class="mic stop" data-act="stop" aria-label="${L('Stop', '停止')}">${ICON.stop()}</button></div>
     </div>`;
   }
 
-  const note = a.phase === 'nosupport' ? '<p class="ate-note">Voice isn\'t available here, so type it instead.</p>' : '';
+  const note = a.phase === 'nosupport' ? `<p class="ate-note">${L("Voice isn't available here, so type it instead.", '这里用不了语音，请打字。')}</p>` : '';
   const typed = a.typing
-    ? `<div class="ate-type"><input id="ate-text" type="text" placeholder="e.g. made curry with two chicken thighs" autocomplete="off" aria-label="What you ate" data-enter="ate-typed"><button class="btn btn-primary sm" data-act="ate-typed">Go</button></div>`
-    : '<button class="link" data-act="ate-type">Or type it</button>';
+    ? `<div class="ate-type"><input id="ate-text" type="text" placeholder="${L('e.g. made curry with two chicken thighs', '比如：用两块鸡腿肉做了咖喱')}" autocomplete="off" aria-label="${L('What you ate', '你吃了什么')}" data-enter="ate-typed"><button class="btn btn-primary sm" data-act="ate-typed">${L('Go', '好')}</button></div>`
+    : `<button class="link" data-act="ate-type">${L('Or type it', '或者打字')}</button>`;
   return `<div class="screen ate">
     <header class="cam-top">${close}</header>
     <main class="scroll ate-body center">
-      <h1 class="display">What did you<br>eat ${a.day ? `on ${esc(longDay(a.day).split(' ')[0])}` : 'today'}?</h1>
-      <p class="ate-hint">Say what you cooked. We'll ask what's left.</p>
-      <button class="mic" data-act="listen" aria-label="Start talking">${ICON.mic({ size: 30, stroke: 2.2 })}</button>
+      <h1 class="display">${isZh() ? `${a.day ? esc(weekdayLong(a.day)) : '今天'}<br>吃了什么？` : `What did you<br>eat ${a.day ? `on ${esc(weekdayLong(a.day))}` : 'today'}?`}</h1>
+      <p class="ate-hint">${L("Say what you cooked. We'll ask what's left.", '说说你做了什么，剩多少我们再问你。')}</p>
+      <button class="mic" data-act="listen" aria-label="${L('Start talking', '开始说话')}">${ICON.mic({ size: 30, stroke: 2.2 })}</button>
       ${note}${typed}
     </main>
   </div>`;
