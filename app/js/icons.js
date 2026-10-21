@@ -59,8 +59,8 @@ export const CAT_ICON = {
 // Icon for a storage place, from its name and kind (v0.2).
 export function placeIcon(place, o) {
   const n = (place.name || '').toLowerCase();
-  const k = /balcon/.test(n) ? 'balcony' : /bin|jar|tub|container|caddy/.test(n) ? 'jar' : /box|bed|drawer|crate|suitcase/.test(n) ? 'box'
-    : /shelf|rack/.test(n) ? 'shelf' : place.kind === 'frozen' || /freez/.test(n) ? 'snow' : place.kind === 'cold' || /fridge/.test(n) ? 'fridge' : 'cupboard';
+  const k = /balcon|阳台/.test(n) ? 'balcony' : /bin|jar|tub|container|caddy|桶|罐|缸/.test(n) ? 'jar' : /box|bed|drawer|crate|suitcase|箱|床|抽屉/.test(n) ? 'box'
+    : /shelf|rack|架/.test(n) ? 'shelf' : place.kind === 'frozen' || /freez|冷冻|冰柜/.test(n) ? 'snow' : place.kind === 'cold' || /fridge|冰箱/.test(n) ? 'fridge' : 'cupboard';
   return ICON[k](o);
 }
 

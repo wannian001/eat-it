@@ -2,7 +2,7 @@
 
 帮大学生管好家里的食物、少浪费：知道冰箱里有什么、哪些该先吃。进库拍照或扫小票；**出库全部用语音**，说一句今天做了什么饭，AI 追问还剩多少。
 
-**在线演示：<https://wannian001.github.io/eat-it/>**（手机、电脑都能开。语音要允许麦克风，不行就点 "Or type it" 打字。）
+**在线演示：<https://wannian001.github.io/eat-it/>**（手机、电脑都能开。语音要允许麦克风，不行就点 "Or type it" 打字。）界面有中英两种，左下角或 "我的" 页切换；直接打开中文版：<https://wannian001.github.io/eat-it/?lang=zh>。
 
 <p>
 <img src="app/screenshots/phone-01-home.png" width="200" alt="手机：Home">

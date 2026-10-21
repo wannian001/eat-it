@@ -1,10 +1,11 @@
 // Pieces several pages share: the open fridge, food tiles, Eat first, Today, Room at home.
-import { food, foodName, shortName } from '../foods.js';
+import { food, foodName, shortName, nameMatches } from '../foods.js';
 import { eatFirst, oldestFrozen, units, nudge, hasFreezer, mealAnswer, mealSkipped } from '../state.js';
-import { frozenWeeks, urgency, longDay, weekday, addDays } from '../dates.js';
+import { frozenWeeks, urgency, weekdayLong, weekday, addDays } from '../dates.js';
 import { shelvesOf } from '../seed.js';
 import { ICON, placeIcon, appIcon } from '../icons.js';
-import { esc, pic, tag, dotHtml, label } from '../ui.js';
+import { esc, pic, tag, dotHtml, label, langSwitch } from '../ui.js';
+import { L, isZh, dz, amountWord } from '../i18n.js';
 
 
 const lowerFirst = (t) => t.charAt(0).toLowerCase() + t.slice(1);
@@ -44,10 +45,10 @@ export function tileHtml(app, t, { size = 54, oldestId } = {}) {
   // Food at home's Mine / Shared filter fades the other tiles, the way search does.
   const own = ownFilter(app);
   const notOwn = own !== 'all' && !t.lots.some((l) => (own === 'shared') === (l.owner === 'shared'));
-  const dim = (q && !foodName(t.food, 2, t.lot).toLowerCase().includes(q)) || notOwn;
+  const dim = (q && !nameMatches(t.food, t.lot, q)) || notOwn;
   return `<button class="tile${t.fresh && app.ui.flash ? ' fresh' : ''}${dim ? ' dim' : ''}" data-act="lot" data-arg="${esc(t.lot.id)}" aria-label="${esc(label(t.food, t.count, t.lot.date, today, 'tile', t.lot))}">
     ${pic(t.food, { bag: t.lot.bag, size, lot: t.lot })}
-    ${wk >= 2 ? `<span class="wk">${wk} wk</span>` : ''}
+    ${wk >= 2 ? `<span class="wk">${L(`${wk} wk`, `${wk}周`)}</span>` : ''}
     ${dotHtml(t.lot.date, today)}
     ${t.count > 1 ? `<span class="count">${t.count}</span>` : ''}
     <span class="tile-name">${esc(shortName(t.food, t.lot))}</span>
@@ -57,7 +58,7 @@ export function tileHtml(app, t, { size = 54, oldestId } = {}) {
 function fullness(n, capacity) {
   const filled = Math.min(capacity, n);
   const bars = Array.from({ length: capacity }, (_, i) => `<i class="${i < filled ? 'on' : ''}"></i>`).join('');
-  return filled / capacity >= 0.75 ? `<span class="nearly" aria-label="Nearly full"><span class="bars">${bars}</span>Nearly full</span>` : '';
+  return filled / capacity >= 0.75 ? `<span class="nearly" aria-label="${L('Nearly full', '快满了')}"><span class="bars">${bars}</span>${L('Nearly full', '快满了')}</span>` : '';
 }
 
 const othersIn = (persona, placeId) => (persona.others || []).filter((o) => o.place === placeId);
@@ -74,7 +75,7 @@ export function fridgePicture(app, { places } = {}) {
   const zones = [];
   for (const fz of frozen) {
     const ts = shelfGroups(app, fz);
-    zones.push(`<div class="zone zone-freezer"><span class="zone-label">${ICON.snow({ size: 13, stroke: 2.2 })}${esc(fz.name)}</span><div class="tiles">${ts.map((t) => tileHtml(app, t, { oldestId: oldest?.id })).join('') || '<span class="zone-empty">Empty</span>'}</div></div>`);
+    zones.push(`<div class="zone zone-freezer"><span class="zone-label">${ICON.snow({ size: 13, stroke: 2.2 })}${esc(dz(fz.name))}</span><div class="tiles">${ts.map((t) => tileHtml(app, t, { oldestId: oldest?.id })).join('') || `<span class="zone-empty">${L('Empty', '空的')}</span>`}</div></div>`);
   }
   for (const c of cold) {
     for (const sh of shelvesOf(c, p)) {
@@ -83,17 +84,17 @@ export function fridgePicture(app, { places } = {}) {
         const os = othersIn(p, c.id);
         const n = os.reduce((a, o) => a + o.n, 0);
         const names = p.house.mates.map((m) => m.name).join(' & ');
-        zones.push(`<div class="zone zone-locked${ownFilter(app) !== 'all' ? ' dim' : ''}" aria-label="${esc(names)}: ${n} items, private">${ICON.lock({ size: 18 })}<span class="avatars sm">${p.house.mates.map((m, i) => `<span class="avatar av-${i + 1}">${esc(m.initial)}</span>`).join('')}</span><span class="zl-name">${esc(names)}</span><span class="zl-n">${n}</span></div>`);
+        zones.push(`<div class="zone zone-locked${ownFilter(app) !== 'all' ? ' dim' : ''}" aria-label="${esc(L(`${names}: ${n} items, private`, `${names}：${n} 样，不公开`))}">${ICON.lock({ size: 18 })}<span class="avatars sm">${p.house.mates.map((m, i) => `<span class="avatar av-${i + 1}">${esc(m.initial)}</span>`).join('')}</span><span class="zl-name">${esc(names)}</span><span class="zl-n">${n}</span></div>`);
         continue;
       }
       const ts = shelfGroups(app, c, sh.spot);
       const head = sh.label
-        ? `<div class="zone-head"><span class="pill">${sh.icon === 'people' ? ICON.people({ size: 14 }) : `<span class="avatar av-0 xs">${esc(p.initial)}</span>`}${esc(sh.label)}</span>${sh.capacity ? fullness(ts.length, sh.capacity) : ''}</div>`
+        ? `<div class="zone-head"><span class="pill">${sh.icon === 'people' ? ICON.people({ size: 14 }) : `<span class="avatar av-0 xs">${esc(p.initial)}</span>`}${esc(spotLabel(sh.label))}</span>${sh.capacity ? fullness(ts.length, sh.capacity) : ''}</div>`
         : '';
       zones.push(`<div class="zone zone-${sh.kind || 'shelf'}">${head}<div class="tiles">${ts.map((t) => tileHtml(app, t, { oldestId: oldest?.id })).join('')}</div></div>`);
     }
   }
-  return zones.length ? `<section class="fridge" aria-label="Fridge">${zones.join('')}</section>` : '';
+  return zones.length ? `<section class="fridge" aria-label="${L('Fridge', '冰箱')}">${zones.join('')}</section>` : '';
 }
 
 // Cupboard, rice bin, balcony …: one panel each, same tiles.
@@ -102,9 +103,9 @@ export function shelfPanel(app, place) {
   const ts = shelfGroups(app, place);
   const os = othersIn(p, place.id);
   const locked = os.length ? `<div class="zone zone-locked sm${ownFilter(app) !== 'all' ? ' dim' : ''}">${ICON.lock({ size: 16 })}<span class="zl-name">${esc(os.map((o) => o.who).join(' & '))}</span><span class="zl-n">${os.reduce((a, o) => a + o.n, 0)}</span></div>` : '';
-  return `<section class="cab" aria-label="${esc(place.name)}">
-    <div class="cab-h">${placeIcon(place, { size: 16 })}<b>${esc(place.name)}</b></div>
-    <div class="tiles">${ts.map((t) => tileHtml(app, t, { size: 46 })).join('') || '<span class="zone-empty">Empty</span>'}</div>${locked}
+  return `<section class="cab" aria-label="${esc(dz(place.name))}">
+    <div class="cab-h">${placeIcon(place, { size: 16 })}<b>${esc(dz(place.name))}</b></div>
+    <div class="tiles">${ts.map((t) => tileHtml(app, t, { size: 46 })).join('') || `<span class="zone-empty">${L('Empty', '空的')}</span>`}</div>${locked}
   </section>`;
 }
 
@@ -120,7 +121,7 @@ export function eatFirstHtml(app, { limit = 3 } = {}) {
   const cards = eatFirst(store.state, today, limit);
   if (!cards.length) return '';
   return `<section class="eatfirst" aria-labelledby="ef-h">
-    <h2 id="ef-h">Eat first</h2>
+    <h2 id="ef-h">${L('Eat first', '先吃这些')}</h2>
     <div class="ef-cards">${cards.map(({ food: f, lot }) => `
       <button class="ef-card" data-act="lot" data-arg="${esc(lot.id)}" aria-label="${esc(label(f, 1, lot.date, today, 'card', lot))}">
         ${pic(f, { size: 40, lot })}
@@ -132,18 +133,25 @@ export function eatFirstHtml(app, { limit = 3 } = {}) {
 }
 
 // "Eating out tomorrow to Mon" / "Eating out Sat": a run of days out (state.awayRuns).
+// Chinese: "明天到周一在外面吃" / "周六在外面吃".
 export function awayTitle(r, today) {
-  const w = (d) => (d === addDays(today, 1) ? 'tomorrow' : weekday(d));
+  const w = (d) => (d === addDays(today, 1) ? L('tomorrow', '明天') : weekday(d));
+  if (isZh()) return r.from === r.to ? `${w(r.from)}在外面吃` : `${w(r.from)}到${weekday(r.to)}在外面吃`;
   return r.from === r.to ? `Eating out ${w(r.from)}` : `Eating out ${w(r.from)} to ${weekday(r.to)}`;
 }
-export const awayWhen = (r, today) => (r.prep === today ? 'today' : `by ${weekday(r.prep)}`);
+// "today" / "by Wed"; Chinese "今天" / "在周三前".
+export const awayWhen = (r, today) => (r.prep === today ? L('today', '今天') : L(`by ${weekday(r.prep)}`, `在${weekday(r.prep)}前`));
+
+// The shelf names drawn on the open fridge.
+const SHELF_LABEL = { Shared: '公共', Mine: '我的' };
+const spotLabel = (t) => (isZh() && SHELF_LABEL[t]) || t;
 
 // Today on Home: just "Ate at home today?" (and the freezer nudge when a bag is old enough).
 export function todayHtml(app) {
   const s = app.store.state, today = app.store.today;
   const thaw = nudge(s, today);
   return `<div class="card today-card">
-    ${thaw ? `<p class="thaw-line">${ICON.snow({ size: 15 })}${esc(shortName(thaw.food, thaw))}, bag 1 · ${frozenWeeks(thaw.date.on, today)} weeks<button class="link" data-act="thaw" data-arg="${esc(thaw.id)}">Thaw tonight</button></p>` : ''}
+    ${thaw ? `<p class="thaw-line">${ICON.snow({ size: 15 })}${esc(L(`${shortName(thaw.food, thaw)}, bag 1 · ${frozenWeeks(thaw.date.on, today)} weeks`, `${shortName(thaw.food, thaw)}第 1 袋 · 冻了 ${frozenWeeks(thaw.date.on, today)} 周`))}<button class="link" data-act="thaw" data-arg="${esc(thaw.id)}">${L('Thaw tonight', '今晚解冻')}</button></p>` : ''}
     ${mealCheck(app, today)}
   </div>`;
 }
@@ -153,35 +161,42 @@ export function roomBars(app) {
   const s = app.store.state;
   const rows = s.places.map((pl) => {
     const v = pl.full ?? 0;
-    const txt = pl.full == null ? 'not measured yet' : `${pl.src === 'photo' ? '≈' : 'about'} ${pl.full}% full`;
-    return `<li><span class="rb-name">${placeIcon(pl, { size: 18 })}<b>${esc(pl.name)}</b></span><em>${esc(txt)}</em><div class="bar${v >= 80 ? ' hi' : ''}${pl.src === 'photo' ? ' est' : ''}"><i style="width:${v}%"></i></div></li>`;
+    const txt = fullText(pl);
+    return `<li><span class="rb-name">${placeIcon(pl, { size: 18 })}<b>${esc(dz(pl.name))}</b></span><em>${esc(txt)}</em><div class="bar${v >= 80 ? ' hi' : ''}${pl.src === 'photo' ? ' est' : ''}"><i style="width:${v}%"></i></div></li>`;
   }).join('');
-  const noFz = hasFreezer(s) ? '' : `<li class="muted-row"><span class="rb-name">${ICON.snow({ size: 18 })}<b>Freezer</b></span><em>none at home</em></li>`;
-  return `<ul class="room">${rows || '<li class="muted-row">No storage places yet.</li>'}${noFz}</ul>`;
+  const noFz = hasFreezer(s) ? '' : `<li class="muted-row"><span class="rb-name">${ICON.snow({ size: 18 })}<b>${L('Freezer', '冷冻室')}</b></span><em>${L('none at home', '家里没有')}</em></li>`;
+  return `<ul class="room">${rows || `<li class="muted-row">${L('No storage places yet.', '还没有存放的地方。')}</li>`}${noFz}</ul>`;
+}
+
+// "about 35% full" / "≈ 60% full" (from a photo) / "not measured yet".
+export function fullText(pl) {
+  if (pl.full == null) return L('not measured yet', '还没量过');
+  return isZh() ? `${pl.src === 'photo' ? '约' : '大约'} ${pl.full}% 满` : `${pl.src === 'photo' ? '≈' : 'about'} ${pl.full}% full`;
 }
 
 
 // Phone header for the other tabs: app icon + page title (board 01 style), optional action.
 export function phoneTitle(app, title, right = '') {
-  return `<header class="top phone-only"><span class="app-icon">${appIcon({ size: 34, badge: false })}</span><h1>${esc(title)}</h1>${right}</header>`;
+  return `<header class="top phone-only"><span class="app-icon">${appIcon({ size: 34, badge: false })}</span><h1>${esc(title)}</h1>${langSwitch({ compact: true })}${right}</header>`;
 }
 
 // ---------- what happened on a day (week calendar, Home) ----------
 
 function historyLine(h) {
   const n = foodName(h.food, 2, h);
+  const c = L(': ', '：');
   switch (h.kind) {
     case 'ate':
-      if (h.left) return `${n}: ${h.left === 'none' ? 'all gone' : h.left === 'little' ? 'a little left' : 'plenty left'}`;
-      if (h.part) return `${n}: some`;
+      if (h.left) return `${n}${c}${h.left === 'none' ? L('all gone', '吃完了') : h.left === 'little' ? L('a little left', '剩一点') : L('plenty left', '还剩不少')}`;
+      if (h.part) return `${n}${c}${L('some', '用了一些')}`;
       { const t = +(h.taken ?? h.qty).toFixed(2);
-        return t > 0 ? `${n} −${t}${h.unit === 'bag' ? (t === 1 ? ' bag' : ' bags') : ''}` : ''; }
-    case 'use': return `${n}: ${h.how === 'some' ? 'used some' : 'used one'}`;
-    case 'qty': return h.to <= 0 ? `${n}: all gone` : `${n}: ${h.from} → ${h.to}`;
-    case 'amount': return `${n}: ${h.value.toLowerCase()} left`;
-    case 'toss': return `${n}: thrown out`;
-    case 'thaw': return `${n}: thawed`;
-    case 'freeze': return `${n}: frozen`;
+        return t > 0 ? `${n} −${t}${h.unit === 'bag' ? L(t === 1 ? ' bag' : ' bags', ' 袋') : ''}` : ''; }
+    case 'use': return `${n}${c}${h.how === 'some' ? L('used some', '用了一些') : L('used one', '用了一个')}`;
+    case 'qty': return h.to <= 0 ? `${n}${c}${L('all gone', '没有了')}` : `${n}${c}${h.from} → ${h.to}`;
+    case 'amount': return `${n}${c}${L(`${h.value.toLowerCase()} left`, h.value === 'Low' ? '快没了' : `还剩${amountWord(h.value)}`)}`;
+    case 'toss': return `${n}${c}${L('thrown out', '扔掉了')}`;
+    case 'thaw': return `${n}${c}${L('thawed', '解冻了')}`;
+    case 'freeze': return `${n}${c}${L('frozen', '冻起来了')}`;
     default: return '';
   }
 }
@@ -216,23 +231,23 @@ export function mealLog(s, day) {
 export function mealCheck(app, day) {
   const s = app.store.state;
   const isToday = day === app.store.today;
-  const name = longDay(day).split(' ')[0];
-  const when = isToday ? 'today' : `on ${name}`;
+  const name = weekdayLong(day);
+  const when = isToday ? L('today', '今天') : L(`on ${name}`, name);
   const lines = mealLog(s, day);
   const ans = mealAnswer(s, day);
-  const change = `<button class="link" data-act="meal" data-arg="${day}|none">Change</button>`;
+  const change = `<button class="link" data-act="meal" data-arg="${day}|none">${L('Change', '改一下')}</button>`;
   if (day > app.store.today) {
-    if (ans === 'out') return `<div class="meal"><p>${ICON.fork({ size: 15 })}Eating out on ${esc(name)}</p>${change}</div>`;
-    if (ans === 'home') return `<div class="meal"><p>${ICON.home({ size: 15 })}Eating at home on ${esc(name)}</p>${change}</div>`;
-    return `<div class="meal ask"><p class="meal-q">Eating at home on ${esc(name)}?</p><div class="btn-row wrap"><button class="btn btn-primary sm" data-act="meal" data-arg="${day}|home">Yes</button><button class="btn btn-secondary sm" data-act="meal" data-arg="${day}|out">No, eating out</button></div></div>`;
+    if (ans === 'out') return `<div class="meal"><p>${ICON.fork({ size: 15 })}${esc(L(`Eating out on ${name}`, `${name}在外面吃`))}</p>${change}</div>`;
+    if (ans === 'home') return `<div class="meal"><p>${ICON.home({ size: 15 })}${esc(L(`Eating at home on ${name}`, `${name}在家吃`))}</p>${change}</div>`;
+    return `<div class="meal ask"><p class="meal-q">${esc(L(`Eating at home on ${name}?`, `${name}在家吃吗？`))}</p><div class="btn-row wrap"><button class="btn btn-primary sm" data-act="meal" data-arg="${day}|home">${L('Yes', '在家吃')}</button><button class="btn btn-secondary sm" data-act="meal" data-arg="${day}|out">${L('No, eating out', '不，在外面吃')}</button></div></div>`;
   }
   const record = (label, cls) => `<button class="btn ${cls} sm" data-act="ate-for" data-arg="${day}">${ICON.mic({ size: 16 })}${label}</button>`;
-  if (ans === 'out') return `<div class="meal"><p>${ICON.fork({ size: 15 })}${isToday ? 'Eating out today' : 'Ate out'}, nothing to record</p>${change}</div>`;
-  if (lines.length) return `<div class="meal"><p class="meal-q">${isToday ? 'Used today' : 'Used'}</p><ul class="plain">${lines.map((t) => `<li>${esc(t)}</li>`).join('')}</ul><button class="chip-btn" data-act="ate-for" data-arg="${day}">${ICON.mic({ size: 14 })}Add more</button></div>`;
-  if (ans === 'home' && mealSkipped(s, day)) return `<div class="meal"><p>${ICON.home({ size: 15 })}At home · not recorded</p><div class="btn-row wrap">${record('Record now', 'btn-secondary')}${change}</div></div>`;
+  if (ans === 'out') return `<div class="meal"><p>${ICON.fork({ size: 15 })}${isToday ? L('Eating out today, nothing to record', '今天在外面吃，不用记') : L('Ate out, nothing to record', '在外面吃的，不用记')}</p>${change}</div>`;
+  if (lines.length) return `<div class="meal"><p class="meal-q">${isToday ? L('Used today', '今天用掉的') : L('Used', '用掉的')}</p><ul class="plain">${lines.map((t) => `<li>${esc(t)}</li>`).join('')}</ul><button class="chip-btn" data-act="ate-for" data-arg="${day}">${ICON.mic({ size: 14 })}${L('Add more', '再记一些')}</button></div>`;
+  if (ans === 'home' && mealSkipped(s, day)) return `<div class="meal"><p>${ICON.home({ size: 15 })}${L('At home · not recorded', '在家吃 · 没记')}</p><div class="btn-row wrap">${record(L('Record now', '现在记'), 'btn-secondary')}${change}</div></div>`;
   if (ans === 'home') {
-    return `<div class="meal ask"><p class="meal-q">Record what you used?</p>
-      <div class="btn-row wrap">${record('Record by voice', 'btn-primary')}<button class="btn btn-quiet sm" data-act="meal" data-arg="${day}|skip">Not now</button></div></div>`;
+    return `<div class="meal ask"><p class="meal-q">${L('Record what you used?', '记一下用了什么？')}</p>
+      <div class="btn-row wrap">${record(L('Record by voice', '用语音记'), 'btn-primary')}<button class="btn btn-quiet sm" data-act="meal" data-arg="${day}|skip">${L('Not now', '先不记')}</button></div></div>`;
   }
-  return `<div class="meal ask"><p class="meal-q">Ate at home ${esc(when)}?</p><div class="btn-row wrap"><button class="btn btn-primary sm" data-act="meal" data-arg="${day}|home">Yes</button><button class="btn btn-secondary sm" data-act="meal" data-arg="${day}|out">No, ate out</button></div></div>`;
+  return `<div class="meal ask"><p class="meal-q">${esc(L(`Ate at home ${when}?`, `${when}在家吃的吗？`))}</p><div class="btn-row wrap"><button class="btn btn-primary sm" data-act="meal" data-arg="${day}|home">${L('Yes', '是')}</button><button class="btn btn-secondary sm" data-act="meal" data-arg="${day}|out">${L('No, ate out', '不，在外面吃的')}</button></div></div>`;
 }
