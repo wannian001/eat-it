@@ -5,11 +5,35 @@
 // spot   where it sits in a fridge without housemates: top | middle | crisper
 // unit   pc (counted) | g | L | bag            -> counted foods show a number on the tile
 // est    days it keeps when the pack has no date. OUR GUESSES, always shown "~" + dashed
-//        (VISUAL-SPEC §7). Leftovers = 3 days (UQ, 2–3 days).
+//        (VISUAL-SPEC §7): no official Australian site has a fridge-days table for produce or
+//        dairy. Leftovers = 3 days (UQ, 2–3 days; Food Safety Information Council: "within 2 to 3 days").
 // group  the words used to explain an estimate: "leafy greens · bought Sat 10 Oct · in the fridge"
-// tip    a storage guide shown on the food card, marked "guide"
+// tip    a storage guide shown on the food card, marked "guide". Sources below
 // byWeight  meat sold by weight can be split into bags (Brief §4.7)
 // room   kept at room temperature by default (cupboard)
+//
+// Where the tips come from (checked 2026-10-22). FSANZ = foodstandards.gov.au,
+// FSIC = Food Safety Information Council (foodsafety.asn.au), LFHW = Love Food Hate Waste NSW
+// (lovefoodhatewaste.nsw.gov.au), BHC = Better Health Channel, Vic (betterhealth.vic.gov.au).
+//   Official advice says the same:
+//     thaw in the fridge (beef, pork, salmon)    FSANZ /consumer/prevention-of-foodborne-illness/food-safety-basics
+//     raw meat on the bottom shelf (chicken)     BHC /health/healthyliving/food-safety-and-storage
+//     eggs in the carton                         FSIC /topic/food-storage-pantry-fridge-or-freezer/
+//     cooked rice into the fridge soon           LFHW /How-to-store ("definitely within four hours")
+//     mushrooms in a paper bag                   LFHW /news/flavours-autumn ("slimy" is our wording)
+//     oat milk in the cupboard until opened      LFHW /keep-it-fresh (long-life milk only)
+//   Partly backed (the source says something close, not the whole tip):
+//     dumplings, peas straight from frozen       FSIC /topic/fridge-freezer-foodsafety/ (follow the pack)
+//     milk at the back, not the door             LFHW /how-to-store-dairy-eggs; FSIC: the door is warmest
+//     cheese wrapped once open                   LFHW /how-to-store-dairy-eggs
+//     spinach with a paper towel                 LFHW /fruits-vegetable-and-herbs
+//     carrots in the fridge                      LFHW /fruits-vegetable-and-herbs (crisper drawer is ours)
+//     broccoli unwashed                          FSIC /topic/fresh-fruit-and-veg-how-to-keep-it-safe/ (crisper is ours)
+//     bread sealed, cool and dry                 LFHW /How-to-store
+//   Our own estimate, no official source found: mince 3–4 months frozen (beef keep), yoghurt with a
+//   clean spoon, tofu in water, capsicum whole and dry.
+//   Tomato: FSIC says whole tomatoes keep better OUTSIDE the fridge, the opposite of our tip. Not
+//   changed here; the group decides the new wording (both languages).
 
 import { isZh } from './i18n.js';
 
