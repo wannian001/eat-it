@@ -26,7 +26,7 @@ Eat It! is a phone app concept from a University of Melbourne group project (INF
 - Add food by photo or receipt, then check what the app read. Mark food as used by saying what you cooked, by tapping the food card, or by tapping a home-screen widget.
 - Live demo: <https://wannian001.github.io/eat-it/> (`?lang=en` for English, `?lang=zh` for Chinese). Photo and receipt reading are simulated; there is no back end.
 - The course deliverables, a 3-minute video and a 2-page report, were submitted on 19 October 2026.
-- The prototype code was built with AI (Claude) from our submitted fieldwork report. Feature choices, the video script and the report's reflection are the group's own decisions and writing (see the AI section at the end).
+- The course did not ask for a prototype. Jiakuo built this one to film the concept video: Raina set the visual design principles (`docs/VISUAL-SPEC.md`), and Jiakuo did the features, screens and code. The code was generated with an AI coding tool (Claude Code) and reviewed by Jiakuo.
 
 ## 仓库里有什么
 
