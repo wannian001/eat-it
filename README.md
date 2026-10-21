@@ -14,9 +14,19 @@
 
 - 可运行的 App 在 [`app/`](app/)。功能、全部截图、怎么本地打开、哪些是模拟的，都在 **[app/README.md](app/README.md)**。
 - 设计文档在 `docs/Eat-It_*.md` 和 `docs/VISUAL-SPEC.md`。AI 助手请先读 [AGENTS.md](AGENTS.md)。
-- 截止：**10/20（周二）15:00**，3 分钟视频 + 2 页报告。
+- 课程交付物（3 分钟视频 + 2 页报告）已在 2026-10-19 提交。之后的改动只在这个仓库和在线演示里，不影响已交的作业。
 
 > 在线演示就是这个仓库发布的：合并到 `main` 后运行 `sh app/publish-site.sh`，它把 `app/` 和贴纸构建好，推到本仓库的 `gh-pages` 分支，GitHub Pages 从那里发布。网站上只有 App，没有文档和旧原型。这个仓库 2026-10-13 起公开（原名 info90006-shelflife），提交记录就是我们小组的工作记录。
+
+## In English
+
+Eat It! is a phone app concept from a University of Melbourne group project (INFO90006 Fieldwork for Design, Semester 2, 2026). It helps students who live alone or share a house know what food is at home and what to eat first, so less of it is thrown out.
+
+- It builds on our fieldwork: two interviews each and a one-week diary study with eight students, giving six findings and five design requirements. This public repo holds no participant data.
+- Add food by photo or receipt, then check what the app read. Mark food as used by saying what you cooked, by tapping the food card, or by tapping a home-screen widget.
+- Live demo: <https://wannian001.github.io/eat-it/> (`?lang=en` for English, `?lang=zh` for Chinese). Photo and receipt reading are simulated; there is no back end.
+- The course deliverables, a 3-minute video and a 2-page report, were submitted on 19 October 2026.
+- The prototype code was built with AI (Claude) from our submitted fieldwork report. Feature choices, the video script and the report's reflection are the group's own decisions and writing (see the AI section at the end).
 
 ## 仓库里有什么
 
